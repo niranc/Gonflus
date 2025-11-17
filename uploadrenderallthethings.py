@@ -65,9 +65,9 @@ def main():
         'txt': (generate_text_payloads, 'txt'),
         'csv': (generate_text_payloads, 'csv'),
         'rtf': (generate_text_payloads, 'rtf'),
-        'odt': (generate_office_payloads, None),
-        'ods': (generate_office_payloads, None),
-        'odp': (generate_office_payloads, None),
+        'odt': (generate_office_payloads, 'odt'),
+        'ods': (generate_office_payloads, 'ods'),
+        'odp': (generate_office_payloads, 'odp'),
         'epub': (generate_archive_payloads, 'epub'),
     }
 
