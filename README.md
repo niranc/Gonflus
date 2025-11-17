@@ -1,6 +1,6 @@
 # UploadRenderAllTheThings
 
-Comprehensive payload generator for security testing of file uploads. Generates all possible payloads for SSRF, XXE, RCE, XSS, Path Traversal, NTLM Leak, LFI, and other vulnerabilities in all common file formats.
+A comprehensive payload generator for security testing of file uploads. It generates all possible payloads for SSRF, XXE, RCE, XSS, Path Traversal, NTLM Leak, LFI, and other vulnerabilities in all common file formats.
 
 ## Installation
 
@@ -174,10 +174,10 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 ## Supported File Formats
 
 ### Office Documents
-- **PDF**: SSRF (24 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques incluant Ghostscript/PostScript et JavaScript), XSS (12 techniques incluant sandbox bypass et injections), Info Disclosure (5 techniques utilisant fonctions Excel/Office)
+- **PDF**: SSRF (24 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques including Ghostscript/PostScript and JavaScript), XSS (12 techniques including sandbox bypass and injections), Info Disclosure (5 techniques using Excel/Office functions)
 - **DOCX**: SSRF (5 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques)
-- **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques), Info Disclosure (5 techniques utilisant fonctions Excel)
-- **ODT/ODS/ODP**: XXE (2 techniques), XSS (1 technique), Info Disclosure (5 techniques pour ODT/ODS utilisant fonctions Excel/Office)
+- **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques), Info Disclosure (5 techniques using Excel functions)
+- **ODT/ODS/ODP**: XXE (2 techniques), XSS (1 technique), Info Disclosure (5 techniques for ODT/ODS using Excel/Office functions)
 - **PPTX**: SSRF (2 techniques), XXE (2 techniques), XSS (2 techniques)
 
 ### Web Formats
@@ -230,25 +230,25 @@ Master payloads are available at the root of each extension directory:
 ## Detailed PDF Techniques
 
 ### XSS
-1. **JavaScript sandbox bypass avec generator functions** - `/Names → /JavaScript` - Comprend si les APIs Acrobat Javascript sont supportées, bypass sandbox - Taux pop: Variable selon viewer
-2. **Data URI scheme avec script** - `/Annot → /A → /URI` - Tente d'exécuter du Javascript arbitraire via data URI - Taux pop: Variable selon viewer
-3. **Injection Javascript via annotations** - `/Annot → /T` - Injection de code via champ Title d'annotation - Taux pop: Variable selon viewer
-4. **URI avec payload XSS details** - `/Annot → /A → /URI` - Injection via URI avec payload HTML - Taux pop: Variable selon viewer
-5. **JavaScript bypass Acrobat APIs** - `/Names → /JavaScript` - Bypass des APIs Acrobat pour exécuter du code arbitraire - Taux pop: Variable selon viewer
-6. **javascript: URI scheme** - `/Annot → /A → /URI` - Exécution via protocole javascript: - Taux pop: Variable selon viewer
-7. **Annotation /V injection (Apryse WebViewer)** - `/Annot → /V` - Injection via champ V d'annotation, fonctionne sur Apryse PDF Webviewer vulnérables - Taux pop: Variable selon version
-8. **FontMatrix injection (PDF.js)** - `/Font → /FontMatrix` - Injection via FontMatrix, fonctionne sur PDF.js vulnérables - Taux pop: Variable selon version
-9. **Javascript sandbox bypass Apryse WebViewer SDK** - `/Names → /JavaScript` - Bypass sandbox dans Apryse WebViewer SDK (10.9.x - 10.12.0) - Taux pop: Variable selon version
-10-12. **Versions simples pour tests** - Payloads XSS simples sans Burp Collaborator pour tests rapides
+1. **JavaScript sandbox bypass with generator functions** - `/Names → /JavaScript` - Understands if Acrobat JavaScript APIs are supported, bypasses sandbox
+2. **Data URI scheme with script** - `/Annot → /A → /URI` - Attempts to execute arbitrary JavaScript via data URI
+3. **JavaScript injection via annotations** - `/Annot → /T` - Code injection via annotation Title field
+4. **URI with XSS payload details** - `/Annot → /A → /URI` - URI injection with HTML payload
+5. **JavaScript bypass Acrobat APIs** - `/Names → /JavaScript` - Bypasses Acrobat APIs to execute arbitrary code
+6. **javascript: URI scheme** - `/Annot → /A → /URI` - Execution via javascript: protocol
+7. **Annotation /V injection (Apryse WebViewer)** - `/Annot → /V` - Injection via annotation V field, works on vulnerable Apryse PDF WebViewer
+8. **FontMatrix injection (PDF.js)** - `/Font → /FontMatrix` - Injection via FontMatrix, works on vulnerable PDF.js
+9. **JavaScript sandbox bypass Apryse WebViewer SDK** - `/Names → /JavaScript` - Sandbox bypass in Apryse WebViewer SDK (10.9.x - 10.12.0)
+10-12. **Simple versions for tests** - Simple XSS payloads without Burp Collaborator for quick testing
 
 ### Info Disclosure
-1. **CELL("filename")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Les informations apparaissent dans les propriétés du document (Author/Creator)
-2. **INFO("version")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche la version dans les métadonnées
-3. **INFO("system")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche le système dans les métadonnées
-4. **NOW()** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche la date dans les métadonnées
-5. **INFO("directory")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche le chemin dans les métadonnées
+1. **CELL("filename")** - `/Info → /Author` and `/Creator` - Formula directly in the PDF Info metadata - The information appears in the document properties (Author/Creator)
+2. **INFO("version")** - `/Info → /Author` and `/Creator` - Formula directly in the PDF Info metadata - Displays the version in the metadata
+3. **INFO("system")** - `/Info → /Author` and `/Creator` - Formula directly in the PDF Info metadata - Displays the system in the metadata
+4. **NOW()** - `/Info → /Author` and `/Creator` - Formula directly in the PDF Info metadata - Displays the date in the metadata
+5. **INFO("directory")** - `/Info → /Author` and `/Creator` - Formula directly in the PDF Info metadata - Displays the path in the metadata
 
-**Note**: Ces payloads mettent directement les formules Excel/Office dans les métadonnées Info du PDF (`/Info` objet avec `/Author` et `/Creator`). Après ouverture du PDF, vérifiez les propriétés du document (clic droit → Propriétés) pour voir les résultats des formules dans les champs Author/Creator. Pas besoin de JavaScript, les formules sont directement dans les métadonnées.
+**Note**: These payloads directly place Excel/Office formulas in the PDF Info metadata (`/Info` object with `/Author` and `/Creator`). After opening the PDF, check the document properties (right-click → Properties) to see the formula results in the Author/Creator fields. No JavaScript is needed, the formulas are directly in the metadata.
 
 ### SSRF
 1. **XObject Image remote URL** - `/XObject → /Subtype /Image → /URL` - iText7, PDFBox 3.x, TCPDF::Image(@), Syncfusion, Aspose, SelectPdf
@@ -282,7 +282,7 @@ Master payloads are available at the root of each extension directory:
 
 ### LFI
 27. **GoToR file:///** - `/Annot → /A → /GoToR → /F` - wkhtmltopdf, old parsers
-28. **URI file:// pour accès fichiers Windows** - `/Annot → /A → /URI` - Tente d'accéder à des fichiers locaux via file:// - Windows uniquement
+28. **URI file:// for accessing Windows files** - `/Annot → /A → /URI` - Attempts to access local files via file:// - Windows only
 
 ### XXE
 29. **XMP packet DOCTYPE + ENTITY** - metadata stream - PDFBox, iText7, exiftool
@@ -291,16 +291,16 @@ Master payloads are available at the root of each extension directory:
 ### RCE
 31. **Ghostscript PostScript injection** - `/Contents → PostScript code` - Ghostscript (bypass -dSAFER) - CVE-2019-10216, CVE-2019-14811
 32. **PostScript file operator** - `/Contents → PostScript %pipe%` - Ghostscript, old parsers
-33. **app.openDoc() pour exécution Windows** - `/Names → /JavaScript` - Tente d'exécuter des commandes Windows via app.openDoc() - Windows uniquement
-34. **URI START pour exécution Windows** - `/Annot → /A → /URI` - Tente d'exécuter via protocole START sur Windows - Windows uniquement
-35. **app.launchURL() pour exécution Windows** - `/Names → /JavaScript` - Tente d'exécuter via app.launchURL() - Windows uniquement
-36. **app.launchURL() avec fichier** - `/Names → /JavaScript` - Tente d'exécuter un fichier local via app.launchURL() - Windows uniquement
+33. **app.openDoc() for Windows execution** - `/Names → /JavaScript` - Attempts to execute Windows commands via app.openDoc() - Windows only
+34. **URI START for Windows execution** - `/Annot → /A → /URI` - Attempts execution via START protocol on Windows - Windows only
+35. **app.launchURL() for Windows execution** - `/Names → /JavaScript` - Attempts execution via app.launchURL() - Windows only
+36. **app.launchURL() with file** - `/Names → /JavaScript` - Attempts to execute a local file via app.launchURL() - Windows only
 
 ## Detailed DOCX Techniques
 
 ### XSS
-1. **<w:hyperlink r:id="rId1"> + rels Target="javascript:alert(1)"** - word/_rels/document.xml.rels - Word Windows, Word Online ancien - Taux pop: 95%
-2. **{\field{\*\fldinst { HYPERLINK "javascript:alert(1)" }}}** - word/document.xml - Word Windows - Taux pop: 92%
+1. **<w:hyperlink r:id="rId1"> + rels Target="javascript:alert(1)"** - word/_rels/document.xml.rels - Word Windows, old Word Online
+2. **{\field{\*\fldinst { HYPERLINK "javascript:alert(1)" }}}** - word/document.xml - Word Windows
 
 ### SSRF
 1. **document.xml.rels → TargetMode="External"** - word/_rels/document.xml.rels - Apache POI 5.3+, OpenXml, LibreOffice, OnlyOffice
@@ -318,8 +318,8 @@ Master payloads are available at the root of each extension directory:
 ## Detailed XLSX Techniques
 
 ### XSS
-1. **=HYPERLINK("javascript:alert(1)","click ici")** - xl/worksheets/sheet1.xml - Excel Windows, Google Sheets (pop quand clic), LibreOffice - Taux pop: 99%
-2. **<xml><x><![CDATA[<svg onload=alert(1)>]]></x></xml> dans customXml ou sharedStrings** - customXml/item1.xml ou xl/sharedStrings.xml - LibreOffice/OnlyOffice preview - Taux pop: 88%
+1. **=HYPERLINK("javascript:alert(1)","click here")** - xl/worksheets/sheet1.xml - Excel Windows, Google Sheets, LibreOffice
+2. **<xml><x><![CDATA[<svg onload=alert(1)>]]></x></xml> in customXml or sharedStrings** - customXml/item1.xml or xl/sharedStrings.xml - LibreOffice/OnlyOffice preview
 
 ### SSRF
 1. **workbook.xml.rels → TargetMode="External"** - xl/_rels/workbook.xml.rels - POI, PhpSpreadsheet, EPPlus
@@ -333,20 +333,20 @@ Master payloads are available at the root of each extension directory:
 5. **sharedStrings.xml / workbook.xml DOCTYPE** - xl/sharedStrings.xml or workbook.xml - POI, PhpSpreadsheet (lxml)
 
 ### Info Disclosure
-1. **CELL("filename")** - Cellule + docProps/core.xml → dc:creator - Extrait le nom du fichier - Les informations apparaissent dans les propriétés du document (Creator/Author)
-2. **INFO("version")** - Cellule + docProps/core.xml → dc:creator - Extrait la version d'Excel/Office - Affiche la version dans les métadonnées
-3. **INFO("system")** - Cellule + docProps/core.xml → dc:creator - Extrait les informations système - Affiche le système dans les métadonnées
-4. **NOW()** - Cellule + docProps/core.xml → dc:creator - Extrait la date/heure actuelle - Affiche la date dans les métadonnées
-5. **INFO("directory")** - Cellule + docProps/core.xml → dc:creator - Extrait le répertoire du fichier - Affiche le chemin dans les métadonnées
+1. **CELL("filename")** - Cell + docProps/core.xml → dc:creator - Extracts the filename - The information appears in the document properties (Creator/Author)
+2. **INFO("version")** - Cell + docProps/core.xml → dc:creator - Extracts Excel/Office version - Displays the version in the metadata
+3. **INFO("system")** - Cell + docProps/core.xml → dc:creator - Extracts system information - Displays the system in the metadata
+4. **NOW()** - Cell + docProps/core.xml → dc:creator - Extracts current date/time - Displays the date in the metadata
+5. **INFO("directory")** - Cell + docProps/core.xml → dc:creator - Extracts the file directory - Displays the path in the metadata
 
-**Note**: Ces payloads utilisent les formules Excel dans les cellules et modifient les métadonnées core.xml pour mettre les formules dans dc:creator. Après ouverture du fichier, vérifiez les propriétés du document (clic droit → Propriétés) pour voir les résultats des formules dans le champ Creator/Author.
+**Note**: These payloads use Excel formulas in cells and modify the core.xml metadata to place formulas in dc:creator. After opening the file, check the document properties (right-click → Properties) to see the formula results in the Creator/Author field.
 
 ## Detailed SVG Techniques
 
 ### XSS
-1. **<svg onload=alert(1)> ou <script>alert(1)</script>** - SVG root - TOUS les parsers SVG (Batik, librsvg, Chrome, ImageMagick, browsers) - Taux pop: 99.9%
-2. **<image href="x" onerror=alert(1)>** - SVG root - TOUS - Taux pop: 99%
-3. **<animate onbegin=alert(1)>** - SVG root - Tous sauf certains WAF - Taux pop: 98%
+1. **<svg onload=alert(1)> or <script>alert(1)</script>** - SVG root - ALL SVG parsers (Batik, librsvg, Chrome, ImageMagick, browsers)
+2. **<image href="x" onerror=alert(1)>** - SVG root - ALL
+3. **<animate onbegin=alert(1)>** - SVG root - All except some WAF
 
 ### SSRF
 1. **<image href="http://…">** - SVG root - Batik, librsvg, ImageMagick, Resvg
@@ -363,15 +363,15 @@ Master payloads are available at the root of each extension directory:
 - **iTXt chunk "XML:com.adobe.xmp" with DOCTYPE + URL** - iTXt chunk - ImageMagick, exiftool
 - **ImageMagick delegate command injection** - iTXt chunk with delegate - ImageMagick (CVE-2016-3714, ImageTragick)
 - **ImageMagick delegate wget/curl** - iTXt chunk with delegate SVG - ImageMagick
-- **XSS iTXt chunk avec <svg onload=alert(1)> → ImageMagick ou preview HTML** - iTXt chunk - Quelques vieux parsers - Taux pop: 18%
+- **XSS iTXt chunk with <svg onload=alert(1)> → ImageMagick or HTML preview** - iTXt chunk - Some old parsers
 
 ### JPEG
 - **COM segment (0xFFFE) with DOCTYPE + URL** - COM marker - ImageMagick, exiftool
-- **XSS COM segment avec <script>alert(1)</script> → ImageMagick -label** - COM marker - Très rares (seulement vieux ImageMagick + HTML output) - Taux pop: 12%
+- **XSS COM segment with <script>alert(1)</script> → ImageMagick -label** - COM marker - Very rare (only old ImageMagick + HTML output)
 
 ### GIF
 - **Repeated comment blocks with DOCTYPE + URL** - GIF comment extension - ImageMagick
-- **XSS Comment block avec <script>alert(1)</script> → ImageMagick -label ou preview** - GIF comment extension - Très rares (seulement vieux ImageMagick + HTML output) - Taux pop: 15%
+- **XSS Comment block with <script>alert(1)</script> → ImageMagick -label or preview** - GIF comment extension - Very rare (only old ImageMagick + HTML output)
 
 ## Detailed Archive Techniques
 
@@ -382,17 +382,17 @@ Master payloads are available at the root of each extension directory:
 - **Path Traversal Windows** - Filename in archive - Windows extractors
 - **RCE PHP system()** - shell.php in archive - PHP servers (ZIP/JAR only)
 - **RCE PHP exec()** - shell.php in archive - PHP servers (ZIP/JAR only)
-- **XSS ZIP Nom de fichier = <svg onload=alert(1)>.svg + extraction preview** - Nom de fichier dans ZIP - Windows Explorer, certains antivirus - Taux pop: 70%
-- **XSS EPUB <script>alert(1)</script> dans un fichier .xhtml** - OEBPS/chapter1.xhtml - Calibre, Apple Books, certains lecteurs - Taux pop: 92%
+- **XSS ZIP Filename = <svg onload=alert(1)>.svg + extraction preview** - Filename in ZIP - Windows Explorer, some antivirus
+- **XSS EPUB <script>alert(1)</script> in a .xhtml file** - OEBPS/chapter1.xhtml - Calibre, Apple Books, some readers
 
 ## Detailed Text File Techniques
 
 ### TXT/CSV/RTF
-- **XSS script tag** - File content - HTML parsers - Taux pop: <5% (seulement si mauvais Content-Type)
-- **XSS img onerror** - File content - HTML parsers - Taux pop: <5% (seulement si mauvais Content-Type)
-- **XSS CSV =HYPERLINK("javascript:alert(1)","click")** - CSV content - Excel, Google Sheets (quand ouverture auto) - Taux pop: 99%
-- **XSS RTF {\field{\*\fldinst { HYPERLINK "javascript:alert(1)" }}}** - RTF content - WordPad, Word Windows - Taux pop: 94%
-- **XSS RTF {\object\objdata javascript:alert(1)}** - RTF content - Word Windows très ancien - Taux pop: 45%
+- **XSS script tag** - File content - HTML parsers
+- **XSS img onerror** - File content - HTML parsers
+- **XSS CSV =HYPERLINK("javascript:alert(1)","click")** - CSV content - Excel, Google Sheets (when auto-open)
+- **XSS RTF {\field{\*\fldinst { HYPERLINK "javascript:alert(1)" }}}** - RTF content - WordPad, Word Windows
+- **XSS RTF {\object\objdata javascript:alert(1)}** - RTF content - Very old Word Windows
 - **SSRF Direct URL** - File content - URL parsers
 - **SSRF HYPERLINK (RTF)** - RTF field - Word, LibreOffice
 - **Path Traversal relative** - File content - File parsers
@@ -408,16 +408,16 @@ Master payloads are available at the root of each extension directory:
 ### ODT/ODS/ODP
 - **XXE DOCTYPE + ENTITY** - content.xml - LibreOffice, Apache OpenOffice
 - **XXE Parameter entity** - content.xml - LibreOffice, Apache OpenOffice
-- **XSS <text:a xlink:href="javascript:alert(1)">click</text:a>** - content.xml - LibreOffice, OnlyOffice - Taux pop: 96%
+- **XSS <text:a xlink:href="javascript:alert(1)">click</text:a>** - content.xml - LibreOffice, OnlyOffice
 
 ### Info Disclosure (ODT/ODS)
-1. **CELL("filename")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait le nom du fichier - Les informations apparaissent dans les propriétés du document (Creator/Author)
-2. **INFO("version")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait la version de LibreOffice/Office - Affiche la version dans les métadonnées
-3. **INFO("system")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait les informations système - Affiche le système dans les métadonnées
-4. **NOW()** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait la date/heure actuelle - Affiche la date dans les métadonnées
-5. **INFO("directory")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait le répertoire du fichier - Affiche le chemin dans les métadonnées
+1. **CELL("filename")** - Cell (ODS) / content (ODT) + meta.xml → meta:initial-creator - Extracts the filename - The information appears in the document properties (Creator/Author)
+2. **INFO("version")** - Cell (ODS) / content (ODT) + meta.xml → meta:initial-creator - Extracts LibreOffice/Office version - Displays the version in the metadata
+3. **INFO("system")** - Cell (ODS) / content (ODT) + meta.xml → meta:initial-creator - Extracts system information - Displays the system in the metadata
+4. **NOW()** - Cell (ODS) / content (ODT) + meta.xml → meta:initial-creator - Extracts current date/time - Displays the date in the metadata
+5. **INFO("directory")** - Cell (ODS) / content (ODT) + meta.xml → meta:initial-creator - Extracts the file directory - Displays the path in the metadata
 
-**Note**: Ces payloads utilisent les formules Excel/Office dans les cellules (pour ODS) ou le contenu (pour ODT) et modifient les métadonnées meta.xml pour mettre les formules dans meta:initial-creator. Après ouverture du fichier, vérifiez les propriétés du document (clic droit → Propriétés) pour voir les résultats des formules dans le champ Creator/Author.
+**Note**: These payloads use Excel/Office formulas in the cells (for ODS) or content (for ODT) and modify the meta.xml metadata to place the formulas in meta:initial-creator. After opening the file, check the document properties (right-click → Properties) to see the formula results in the Creator/Author field.
 
 ## Detailed XML Techniques
 
@@ -429,16 +429,16 @@ Master payloads are available at the root of each extension directory:
 - **XXE DOCTYPE** - XML root - All XML parsers
 - **XSS script tag** - XML root - HTML parsers
 - **XSS CDATA** - XML root - HTML parsers
-- **XSS <?xml-stylesheet href="javascript:alert(1)"?>** - XML root - IE11, vieux Edge, certains XSLT preview - Taux pop: 65%
-- **XSS <svg onload=alert(1)> dans le XML** - XML root - LibreOffice, OnlyOffice, certains parsers - Taux pop: 90%
+- **XSS <?xml-stylesheet href="javascript:alert(1)"?>** - XML root - IE11, old Edge, some XSLT preview
+- **XSS <svg onload=alert(1)> in XML** - XML root - LibreOffice, OnlyOffice, some parsers
 - **Path Traversal relative** - XML content - File parsers
 - **Path Traversal Windows** - XML content - Windows parsers
 
 ## Detailed HTML Techniques
 
 ### HTML
-- **XSS script tag** - HTML root - All browsers - Taux pop: 100%
-- **XSS svg onload** - HTML root - All browsers - Taux pop: 100%
+- **XSS script tag** - HTML root - All browsers
+- **XSS svg onload** - HTML root - All browsers
 - **SSRF img src** - HTML root - HTML parsers
 - **SSRF link href** - HTML root - HTML parsers
 - **SSRF script src** - HTML root - HTML parsers
@@ -452,8 +452,8 @@ Master payloads are available at the root of each extension directory:
 - **SSRF presentation.xml.rels External** - ppt/_rels/presentation.xml.rels - POI, OpenXml
 - **XXE DOCTYPE + ENTITY** - ppt/presentation.xml - POI, OpenXml
 - **XXE Parameter entity** - ppt/presentation.xml - POI, OpenXml
-- **XSS =HYPERLINK("javascript:alert(1)","click") dans notes ou texte** - ppt/slides/slide1.xml - PowerPoint, Impress - Taux pop: 98%
-- **XSS <a:href>javascript:alert(1)</a:href> dans ppt/slides/slide1.xml** - ppt/slides/slide1.xml - LibreOffice Impress - Taux pop: 90%
+- **XSS =HYPERLINK("javascript:alert(1)","click") in notes or text** - ppt/slides/slide1.xml - PowerPoint, Impress
+- **XSS <a:href>javascript:alert(1)</a:href> in ppt/slides/slide1.xml** - ppt/slides/slide1.xml - LibreOffice Impress
 
 ## Notes
 
