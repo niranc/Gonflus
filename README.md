@@ -1,5 +1,3 @@
-
-// Start of Selection
 # UploadRenderAllTheThings
 
 Comprehensive payload generator for security testing of file uploads. Generates all possible payloads for SSRF, XXE, RCE, XSS, Path Traversal, NTLM Leak, LFI, and other vulnerabilities in all common file formats.
