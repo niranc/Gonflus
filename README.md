@@ -176,11 +176,11 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 ## Supported File Formats
 
 ### Office Documents
-- **PDF**: SSRF (24 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques incluant Ghostscript/PostScript et JavaScript), XSS (12 techniques incluant sandbox bypass et injections)
+- **PDF**: SSRF (24 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques incluant Ghostscript/PostScript et JavaScript), XSS (12 techniques incluant sandbox bypass et injections), Info Disclosure (5 techniques utilisant fonctions Excel/Office)
 - **DOCX**: SSRF (5 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques)
-- **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques)
+- **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques), Info Disclosure (5 techniques utilisant fonctions Excel)
+- **ODT/ODS/ODP**: XXE (2 techniques), XSS (1 technique), Info Disclosure (5 techniques pour ODT/ODS utilisant fonctions Excel/Office)
 - **PPTX**: SSRF (2 techniques), XXE (2 techniques), XSS (2 techniques)
-- **ODT/ODS/ODP**: XXE (2 techniques), XSS (1 technique)
 
 ### Web Formats
 - **HTML**: XSS (2 techniques), SSRF (4 techniques), RCE (2 techniques)
@@ -242,6 +242,15 @@ Master payloads are available at the root of each extension directory:
 8. **FontMatrix injection (PDF.js)** - `/Font → /FontMatrix` - Injection via FontMatrix, fonctionne sur PDF.js vulnérables - Taux pop: Variable selon version
 9. **Javascript sandbox bypass Apryse WebViewer SDK** - `/Names → /JavaScript` - Bypass sandbox dans Apryse WebViewer SDK (10.9.x - 10.12.0) - Taux pop: Variable selon version
 10-12. **Versions simples pour tests** - Payloads XSS simples sans Burp Collaborator pour tests rapides
+
+### Info Disclosure
+1. **CELL("filename")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Les informations apparaissent dans les propriétés du document (Author/Creator)
+2. **INFO("version")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche la version dans les métadonnées
+3. **INFO("system")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche le système dans les métadonnées
+4. **NOW()** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche la date dans les métadonnées
+5. **INFO("directory")** - `/Info → /Author` et `/Creator` - Formule directement dans les métadonnées Info du PDF - Affiche le chemin dans les métadonnées
+
+**Note**: Ces payloads mettent directement les formules Excel/Office dans les métadonnées Info du PDF (`/Info` objet avec `/Author` et `/Creator`). Après ouverture du PDF, vérifiez les propriétés du document (clic droit → Propriétés) pour voir les résultats des formules dans les champs Author/Creator. Pas besoin de JavaScript, les formules sont directement dans les métadonnées.
 
 ### SSRF
 1. **XObject Image remote URL** - `/XObject → /Subtype /Image → /URL` - iText7, PDFBox 3.x, TCPDF::Image(@), Syncfusion, Aspose, SelectPdf
@@ -325,6 +334,15 @@ Master payloads are available at the root of each extension directory:
 ### XXE
 5. **sharedStrings.xml / workbook.xml DOCTYPE** - xl/sharedStrings.xml or workbook.xml - POI, PhpSpreadsheet (lxml)
 
+### Info Disclosure
+1. **CELL("filename")** - Cellule + docProps/core.xml → dc:creator - Extrait le nom du fichier - Les informations apparaissent dans les propriétés du document (Creator/Author)
+2. **INFO("version")** - Cellule + docProps/core.xml → dc:creator - Extrait la version d'Excel/Office - Affiche la version dans les métadonnées
+3. **INFO("system")** - Cellule + docProps/core.xml → dc:creator - Extrait les informations système - Affiche le système dans les métadonnées
+4. **NOW()** - Cellule + docProps/core.xml → dc:creator - Extrait la date/heure actuelle - Affiche la date dans les métadonnées
+5. **INFO("directory")** - Cellule + docProps/core.xml → dc:creator - Extrait le répertoire du fichier - Affiche le chemin dans les métadonnées
+
+**Note**: Ces payloads utilisent les formules Excel dans les cellules et modifient les métadonnées core.xml pour mettre les formules dans dc:creator. Après ouverture du fichier, vérifiez les propriétés du document (clic droit → Propriétés) pour voir les résultats des formules dans le champ Creator/Author.
+
 ## Detailed SVG Techniques
 
 ### XSS
@@ -393,6 +411,15 @@ Master payloads are available at the root of each extension directory:
 - **XXE DOCTYPE + ENTITY** - content.xml - LibreOffice, Apache OpenOffice
 - **XXE Parameter entity** - content.xml - LibreOffice, Apache OpenOffice
 - **XSS <text:a xlink:href="javascript:alert(1)">click</text:a>** - content.xml - LibreOffice, OnlyOffice - Taux pop: 96%
+
+### Info Disclosure (ODT/ODS)
+1. **CELL("filename")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait le nom du fichier - Les informations apparaissent dans les propriétés du document (Creator/Author)
+2. **INFO("version")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait la version de LibreOffice/Office - Affiche la version dans les métadonnées
+3. **INFO("system")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait les informations système - Affiche le système dans les métadonnées
+4. **NOW()** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait la date/heure actuelle - Affiche la date dans les métadonnées
+5. **INFO("directory")** - Cellule (ODS) / contenu (ODT) + meta.xml → meta:initial-creator - Extrait le répertoire du fichier - Affiche le chemin dans les métadonnées
+
+**Note**: Ces payloads utilisent les formules Excel/Office dans les cellules (pour ODS) ou le contenu (pour ODT) et modifient les métadonnées meta.xml pour mettre les formules dans meta:initial-creator. Après ouverture du fichier, vérifiez les propriétés du document (clic droit → Propriétés) pour voir les résultats des formules dans le champ Creator/Author.
 
 ## Detailed XML Techniques
 
