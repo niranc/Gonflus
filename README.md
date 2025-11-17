@@ -176,31 +176,31 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 ## Supported File Formats
 
 ### Office Documents
-- **PDF**: SSRF (24 techniques), NTLM Leak (2 techniques), LFI (1 technique), XXE (2 techniques), RCE (2 techniques Ghostscript/PostScript)
-- **DOCX**: SSRF (5 techniques), LFI (1 technique), XXE (1 technique)
-- **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique)
-- **PPTX**: SSRF (2 techniques), XXE (2 techniques)
-- **ODT/ODS/ODP**: XXE (2 techniques)
+- **PDF**: SSRF (24 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques incluant Ghostscript/PostScript et JavaScript), XSS (12 techniques incluant sandbox bypass et injections)
+- **DOCX**: SSRF (5 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques)
+- **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques)
+- **PPTX**: SSRF (2 techniques), XXE (2 techniques), XSS (2 techniques)
+- **ODT/ODS/ODP**: XXE (2 techniques), XSS (1 technique)
 
 ### Web Formats
-- **HTML**: XSS (10 techniques), SSRF (4 techniques), RCE (2 techniques)
-- **SVG**: SSRF (1 technique), LFI (1 technique), XXE (1 technique)
-- **XML**: XXE (5 techniques), XSS (2 techniques), Path Traversal (2 techniques)
+- **HTML**: XSS (2 techniques), SSRF (4 techniques), RCE (2 techniques)
+- **SVG**: SSRF (1 technique), LFI (1 technique), XXE (1 technique), XSS (3 techniques)
+- **XML**: XXE (5 techniques), XSS (4 techniques), Path Traversal (2 techniques)
 
 ### Images
-- **GIF**: SSRF/XXE (1 technique via comment blocks)
-- **JPG**: SSRF/XXE (1 technique via COM segment)
-- **PNG**: SSRF/XXE (1 technique via iTXt chunk), RCE (2 techniques ImageMagick)
+- **GIF**: SSRF/XXE (1 technique via comment blocks), XSS (1 technique via comment blocks)
+- **JPG/JPEG**: SSRF/XXE (1 technique via COM segment), XSS (1 technique via COM segment)
+- **PNG**: SSRF/XXE (1 technique via iTXt chunk), RCE (2 techniques ImageMagick), XSS (1 technique via iTXt chunk)
 
 ### Archives
-- **ZIP**: XXE (2 techniques), Path Traversal (2 techniques), RCE (2 techniques PHP)
+- **ZIP**: XXE (2 techniques), Path Traversal (2 techniques), RCE (2 techniques PHP), XSS (1 technique via filename)
 - **JAR**: XXE (2 techniques), Path Traversal (2 techniques), RCE (2 techniques PHP)
-- **EPUB**: XXE (2 techniques), Path Traversal (2 techniques)
+- **EPUB**: XXE (2 techniques), Path Traversal (2 techniques), XSS (1 technique via .xhtml)
 
 ### Text Files
 - **TXT**: XSS (2 techniques), SSRF (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
-- **CSV**: XSS (2 techniques), SSRF (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
-- **RTF**: SSRF (2 techniques), XSS (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
+- **CSV**: XSS (3 techniques), SSRF (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
+- **RTF**: SSRF (2 techniques), XSS (4 techniques), Path Traversal (3 techniques), RCE (4 techniques)
 
 ## Master Payloads
 
@@ -230,6 +230,18 @@ Master payloads are available at the root of each extension directory:
 - `pptx/master.pptx` - Contains SSRF, XXE techniques
 
 ## Detailed PDF Techniques
+
+### XSS
+1. **JavaScript sandbox bypass avec generator functions** - `/Names → /JavaScript` - Comprend si les APIs Acrobat Javascript sont supportées, bypass sandbox - Taux pop: Variable selon viewer
+2. **Data URI scheme avec script** - `/Annot → /A → /URI` - Tente d'exécuter du Javascript arbitraire via data URI - Taux pop: Variable selon viewer
+3. **Injection Javascript via annotations** - `/Annot → /T` - Injection de code via champ Title d'annotation - Taux pop: Variable selon viewer
+4. **URI avec payload XSS details** - `/Annot → /A → /URI` - Injection via URI avec payload HTML - Taux pop: Variable selon viewer
+5. **JavaScript bypass Acrobat APIs** - `/Names → /JavaScript` - Bypass des APIs Acrobat pour exécuter du code arbitraire - Taux pop: Variable selon viewer
+6. **javascript: URI scheme** - `/Annot → /A → /URI` - Exécution via protocole javascript: - Taux pop: Variable selon viewer
+7. **Annotation /V injection (Apryse WebViewer)** - `/Annot → /V` - Injection via champ V d'annotation, fonctionne sur Apryse PDF Webviewer vulnérables - Taux pop: Variable selon version
+8. **FontMatrix injection (PDF.js)** - `/Font → /FontMatrix` - Injection via FontMatrix, fonctionne sur PDF.js vulnérables - Taux pop: Variable selon version
+9. **Javascript sandbox bypass Apryse WebViewer SDK** - `/Names → /JavaScript` - Bypass sandbox dans Apryse WebViewer SDK (10.9.x - 10.12.0) - Taux pop: Variable selon version
+10-12. **Versions simples pour tests** - Payloads XSS simples sans Burp Collaborator pour tests rapides
 
 ### SSRF
 1. **XObject Image remote URL** - `/XObject → /Subtype /Image → /URL` - iText7, PDFBox 3.x, TCPDF::Image(@), Syncfusion, Aspose, SelectPdf
@@ -263,16 +275,25 @@ Master payloads are available at the root of each extension directory:
 
 ### LFI
 27. **GoToR file:///** - `/Annot → /A → /GoToR → /F` - wkhtmltopdf, old parsers
+28. **URI file:// pour accès fichiers Windows** - `/Annot → /A → /URI` - Tente d'accéder à des fichiers locaux via file:// - Windows uniquement
 
 ### XXE
-28. **XMP packet DOCTYPE + ENTITY** - metadata stream - PDFBox, iText7, exiftool
-29. **XFA forms DOCTYPE + ENTITY** - `/AcroForm → /XFA` - iText7 XmlParser, PDFBox XFA
+29. **XMP packet DOCTYPE + ENTITY** - metadata stream - PDFBox, iText7, exiftool
+30. **XFA forms DOCTYPE + ENTITY** - `/AcroForm → /XFA` - iText7 XmlParser, PDFBox XFA
 
 ### RCE
-30. **Ghostscript PostScript injection** - `/Contents → PostScript code` - Ghostscript (bypass -dSAFER) - CVE-2019-10216, CVE-2019-14811
-31. **PostScript file operator** - `/Contents → PostScript %pipe%` - Ghostscript, old parsers
+31. **Ghostscript PostScript injection** - `/Contents → PostScript code` - Ghostscript (bypass -dSAFER) - CVE-2019-10216, CVE-2019-14811
+32. **PostScript file operator** - `/Contents → PostScript %pipe%` - Ghostscript, old parsers
+33. **app.openDoc() pour exécution Windows** - `/Names → /JavaScript` - Tente d'exécuter des commandes Windows via app.openDoc() - Windows uniquement
+34. **URI START pour exécution Windows** - `/Annot → /A → /URI` - Tente d'exécuter via protocole START sur Windows - Windows uniquement
+35. **app.launchURL() pour exécution Windows** - `/Names → /JavaScript` - Tente d'exécuter via app.launchURL() - Windows uniquement
+36. **app.launchURL() avec fichier** - `/Names → /JavaScript` - Tente d'exécuter un fichier local via app.launchURL() - Windows uniquement
 
 ## Detailed DOCX Techniques
+
+### XSS
+1. **<w:hyperlink r:id="rId1"> + rels Target="javascript:alert(1)"** - word/_rels/document.xml.rels - Word Windows, Word Online ancien - Taux pop: 95%
+2. **{\field{\*\fldinst { HYPERLINK "javascript:alert(1)" }}}** - word/document.xml - Word Windows - Taux pop: 92%
 
 ### SSRF
 1. **document.xml.rels → TargetMode="External"** - word/_rels/document.xml.rels - Apache POI 5.3+, OpenXml, LibreOffice, OnlyOffice
@@ -289,6 +310,10 @@ Master payloads are available at the root of each extension directory:
 
 ## Detailed XLSX Techniques
 
+### XSS
+1. **=HYPERLINK("javascript:alert(1)","click ici")** - xl/worksheets/sheet1.xml - Excel Windows, Google Sheets (pop quand clic), LibreOffice - Taux pop: 99%
+2. **<xml><x><![CDATA[<svg onload=alert(1)>]]></x></xml> dans customXml ou sharedStrings** - customXml/item1.xml ou xl/sharedStrings.xml - LibreOffice/OnlyOffice preview - Taux pop: 88%
+
 ### SSRF
 1. **workbook.xml.rels → TargetMode="External"** - xl/_rels/workbook.xml.rels - POI, PhpSpreadsheet, EPPlus
 2. **=HYPERLINK("http://…")** - xl/worksheets/sheet1.xml - All
@@ -301,6 +326,11 @@ Master payloads are available at the root of each extension directory:
 5. **sharedStrings.xml / workbook.xml DOCTYPE** - xl/sharedStrings.xml or workbook.xml - POI, PhpSpreadsheet (lxml)
 
 ## Detailed SVG Techniques
+
+### XSS
+1. **<svg onload=alert(1)> ou <script>alert(1)</script>** - SVG root - TOUS les parsers SVG (Batik, librsvg, Chrome, ImageMagick, browsers) - Taux pop: 99.9%
+2. **<image href="x" onerror=alert(1)>** - SVG root - TOUS - Taux pop: 99%
+3. **<animate onbegin=alert(1)>** - SVG root - Tous sauf certains WAF - Taux pop: 98%
 
 ### SSRF
 1. **<image href="http://…">** - SVG root - Batik, librsvg, ImageMagick, Resvg
@@ -317,12 +347,15 @@ Master payloads are available at the root of each extension directory:
 - **iTXt chunk "XML:com.adobe.xmp" with DOCTYPE + URL** - iTXt chunk - ImageMagick, exiftool
 - **ImageMagick delegate command injection** - iTXt chunk with delegate - ImageMagick (CVE-2016-3714, ImageTragick)
 - **ImageMagick delegate wget/curl** - iTXt chunk with delegate SVG - ImageMagick
+- **XSS iTXt chunk avec <svg onload=alert(1)> → ImageMagick ou preview HTML** - iTXt chunk - Quelques vieux parsers - Taux pop: 18%
 
 ### JPEG
 - **COM segment (0xFFFE) with DOCTYPE + URL** - COM marker - ImageMagick, exiftool
+- **XSS COM segment avec <script>alert(1)</script> → ImageMagick -label** - COM marker - Très rares (seulement vieux ImageMagick + HTML output) - Taux pop: 12%
 
 ### GIF
 - **Repeated comment blocks with DOCTYPE + URL** - GIF comment extension - ImageMagick
+- **XSS Comment block avec <script>alert(1)</script> → ImageMagick -label ou preview** - GIF comment extension - Très rares (seulement vieux ImageMagick + HTML output) - Taux pop: 15%
 
 ## Detailed Archive Techniques
 
@@ -333,12 +366,17 @@ Master payloads are available at the root of each extension directory:
 - **Path Traversal Windows** - Filename in archive - Windows extractors
 - **RCE PHP system()** - shell.php in archive - PHP servers (ZIP/JAR only)
 - **RCE PHP exec()** - shell.php in archive - PHP servers (ZIP/JAR only)
+- **XSS ZIP Nom de fichier = <svg onload=alert(1)>.svg + extraction preview** - Nom de fichier dans ZIP - Windows Explorer, certains antivirus - Taux pop: 70%
+- **XSS EPUB <script>alert(1)</script> dans un fichier .xhtml** - OEBPS/chapter1.xhtml - Calibre, Apple Books, certains lecteurs - Taux pop: 92%
 
 ## Detailed Text File Techniques
 
 ### TXT/CSV/RTF
-- **XSS script tag** - File content - HTML parsers
-- **XSS img onerror** - File content - HTML parsers
+- **XSS script tag** - File content - HTML parsers - Taux pop: <5% (seulement si mauvais Content-Type)
+- **XSS img onerror** - File content - HTML parsers - Taux pop: <5% (seulement si mauvais Content-Type)
+- **XSS CSV =HYPERLINK("javascript:alert(1)","click")** - CSV content - Excel, Google Sheets (quand ouverture auto) - Taux pop: 99%
+- **XSS RTF {\field{\*\fldinst { HYPERLINK "javascript:alert(1)" }}}** - RTF content - WordPad, Word Windows - Taux pop: 94%
+- **XSS RTF {\object\objdata javascript:alert(1)}** - RTF content - Word Windows très ancien - Taux pop: 45%
 - **SSRF Direct URL** - File content - URL parsers
 - **SSRF HYPERLINK (RTF)** - RTF field - Word, LibreOffice
 - **Path Traversal relative** - File content - File parsers
@@ -354,6 +392,7 @@ Master payloads are available at the root of each extension directory:
 ### ODT/ODS/ODP
 - **XXE DOCTYPE + ENTITY** - content.xml - LibreOffice, Apache OpenOffice
 - **XXE Parameter entity** - content.xml - LibreOffice, Apache OpenOffice
+- **XSS <text:a xlink:href="javascript:alert(1)">click</text:a>** - content.xml - LibreOffice, OnlyOffice - Taux pop: 96%
 
 ## Detailed XML Techniques
 
@@ -365,15 +404,16 @@ Master payloads are available at the root of each extension directory:
 - **XXE DOCTYPE** - XML root - All XML parsers
 - **XSS script tag** - XML root - HTML parsers
 - **XSS CDATA** - XML root - HTML parsers
+- **XSS <?xml-stylesheet href="javascript:alert(1)"?>** - XML root - IE11, vieux Edge, certains XSLT preview - Taux pop: 65%
+- **XSS <svg onload=alert(1)> dans le XML** - XML root - LibreOffice, OnlyOffice, certains parsers - Taux pop: 90%
 - **Path Traversal relative** - XML content - File parsers
 - **Path Traversal Windows** - XML content - Windows parsers
 
 ## Detailed HTML Techniques
 
 ### HTML
-- **XSS script tag** - HTML root - All browsers
-- **XSS img onerror** - HTML root - All browsers
-- **XSS svg onload** - HTML root - All browsers
+- **XSS script tag** - HTML root - All browsers - Taux pop: 100%
+- **XSS svg onload** - HTML root - All browsers - Taux pop: 100%
 - **SSRF img src** - HTML root - HTML parsers
 - **SSRF link href** - HTML root - HTML parsers
 - **SSRF script src** - HTML root - HTML parsers
@@ -387,6 +427,8 @@ Master payloads are available at the root of each extension directory:
 - **SSRF presentation.xml.rels External** - ppt/_rels/presentation.xml.rels - POI, OpenXml
 - **XXE DOCTYPE + ENTITY** - ppt/presentation.xml - POI, OpenXml
 - **XXE Parameter entity** - ppt/presentation.xml - POI, OpenXml
+- **XSS =HYPERLINK("javascript:alert(1)","click") dans notes ou texte** - ppt/slides/slide1.xml - PowerPoint, Impress - Taux pop: 98%
+- **XSS <a:href>javascript:alert(1)</a:href> dans ppt/slides/slide1.xml** - ppt/slides/slide1.xml - LibreOffice Impress - Taux pop: 90%
 
 ## Notes
 

