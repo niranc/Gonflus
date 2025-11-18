@@ -15,11 +15,12 @@ from generators.archive_generator import generate_archive_payloads
 from generators.text_generator import generate_text_payloads
 from generators.office_generator import generate_office_payloads
 from generators.webm_generator import generate_webm_payloads
+from generators.mp4_generator import generate_mp4_payloads
 
 def main():
     parser = argparse.ArgumentParser(description='Generate all possible file upload payloads for security testing')
     parser.add_argument('burp_collab', nargs='?', help='Burp Collaborator URL (ex: abc123.burpcollaborator.net)')
-    parser.add_argument('-e', '--extension', help='Extension to generate (pdf, svg, docx, xlsx, png, jpg, gif, webm, all). Default: all', default='all')
+    parser.add_argument('-e', '--extension', help='Extension to generate (pdf, svg, docx, xlsx, png, jpg, gif, webm, mp4, all). Default: all', default='all')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete all generated directories before generating new payloads')
     args = parser.parse_args()
 
@@ -27,7 +28,7 @@ def main():
     
     if args.delete:
         print("[+] Deleting existing directories...")
-        extensions_to_delete = ['pdf', 'xlsx', 'docx', 'pptx', 'svg', 'xml', 'html', 'gif', 'jpg', 'jpeg', 'png', 'zip', 'jar', 'txt', 'csv', 'rtf', 'odt', 'ods', 'odp', 'epub', 'webm']
+        extensions_to_delete = ['pdf', 'xlsx', 'docx', 'pptx', 'svg', 'xml', 'html', 'gif', 'jpg', 'jpeg', 'png', 'zip', 'jar', 'txt', 'csv', 'rtf', 'odt', 'ods', 'odp', 'epub', 'webm', 'mp4']
         for ext in extensions_to_delete:
             ext_dir = base_dir / ext
             if ext_dir.exists():
@@ -71,6 +72,7 @@ def main():
         'odp': (generate_office_payloads, 'odp'),
         'epub': (generate_archive_payloads, 'epub'),
         'webm': (generate_webm_payloads, None),
+        'mp4': (generate_mp4_payloads, None),
     }
 
     try:
