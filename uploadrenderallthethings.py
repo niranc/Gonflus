@@ -17,12 +17,14 @@ from generators.office_generator import generate_office_payloads
 from generators.webm_generator import generate_webm_payloads
 from generators.mp4_generator import generate_mp4_payloads
 from generators.markdown_generator import generate_markdown_payloads
+from generators.extended_generator import generate_extended_payloads
 
 def main():
     parser = argparse.ArgumentParser(description='Generate all possible file upload payloads for security testing')
     parser.add_argument('burp_collab', nargs='?', help='Burp Collaborator URL (ex: abc123.burpcollaborator.net)')
     parser.add_argument('-e', '--extension', help='Extension to generate (pdf, svg, docx, xlsx, png, jpg, gif, webm, mp4, md, all). Default: all', default='all')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete all generated directories before generating new payloads')
+    parser.add_argument('--extended', action='store_true', help='Generate extended payloads (other formats with target extension)')
     args = parser.parse_args()
 
     base_dir = Path.cwd()
@@ -99,11 +101,20 @@ def main():
             else:
                 generator_func(ext_dir, burp_collab)
             
+            if args.extended:
+                print(f"[+] Generating extended {ext.upper()} payloads...")
+                generate_extended_payloads(ext_dir, ext, burp_collab)
+                print(f"[✓] Extended {ext.upper()} completed")
+            
             print(f"[✓] {ext.upper()} completed\n")
 
         print("[+] All payloads generated successfully!")
         print(f"[+] Files created in: {base_dir}")
-        print(f"[+] Structure: <extension>/<vulnerability>/<payload_file>")
+        if args.extended:
+            print(f"[+] Structure: <extension>/<vulnerability>/<payload_file>")
+            print(f"[+] Extended structure: <extension>/extended/<source_format>/<vulnerability>/<payload_file>")
+        else:
+            print(f"[+] Structure: <extension>/<vulnerability>/<payload_file>")
     except Exception as error:
         print(f"[!] Error during generation: {error}")
         import traceback

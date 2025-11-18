@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environnements de Test - UploadRenderAllTheThings</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-star-rating@4.1.2/css/star-rating.min.css">
+    <style>
+        .env-card {
+            border: 2px solid #dee2e6;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            height: 100%;
+            cursor: pointer;
+        }
+        .env-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-color: #007bff;
+        }
+        .env-card.php {
+            border-color: #777bb4;
+        }
+        .env-card.php:hover {
+            border-color: #777bb4;
+            box-shadow: 0 10px 25px rgba(119, 123, 180, 0.3);
+        }
+        .env-card.asp {
+            border-color: #5a5a5a;
+        }
+        .env-card.asp:hover {
+            border-color: #5a5a5a;
+            box-shadow: 0 10px 25px rgba(90, 90, 90, 0.3);
+        }
+        .env-card.java {
+            border-color: #ed8b00;
+        }
+        .env-card.java:hover {
+            border-color: #ed8b00;
+            box-shadow: 0 10px 25px rgba(237, 139, 0, 0.3);
+        }
+        .env-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+        .warning-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row mb-5">
+            <div class="col-12 text-center">
+                <h1 class="display-4 mb-3">
+                    <i class="fas fa-shield-alt text-danger"></i> Environnements de Test Vulnérables
+                </h1>
+                <p class="lead text-muted">
+                    Choisissez un environnement pour tester les vulnérabilités de visualisation de documents
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Attention:</strong> Ces environnements sont volontairement vulnérables (SSRF, RCE, XXE, XSS, etc.)
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="env-card php position-relative" onclick="window.location.href='/php'">
+                    <span class="badge bg-danger warning-badge">VULNÉRABLE</span>
+                    <div class="env-icon text-primary">
+                        <i class="fab fa-php"></i>
+                    </div>
+                    <h3 class="mb-3">Environnement PHP</h3>
+                    <p class="text-muted mb-4">
+                        Testez les vulnérabilités dans un environnement PHP simulé avec visualisation de documents
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-check text-danger"></i> SSRF</li>
+                        <li><i class="fas fa-check text-danger"></i> RCE</li>
+                        <li><i class="fas fa-check text-danger"></i> XXE</li>
+                        <li><i class="fas fa-check text-danger"></i> XSS</li>
+                        <li><i class="fas fa-check text-danger"></i> Path Traversal</li>
+                    </ul>
+                    <button class="btn btn-primary btn-lg mt-3">
+                        <i class="fas fa-arrow-right"></i> Accéder
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="env-card asp position-relative" onclick="window.location.href='/asp'">
+                    <span class="badge bg-danger warning-badge">VULNÉRABLE</span>
+                    <div class="env-icon text-dark">
+                        <i class="fab fa-microsoft"></i>
+                    </div>
+                    <h3 class="mb-3">Environnement ASP</h3>
+                    <p class="text-muted mb-4">
+                        Testez les vulnérabilités dans un environnement ASP/.NET simulé avec visualisation de documents
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-check text-danger"></i> SSRF</li>
+                        <li><i class="fas fa-check text-danger"></i> RCE</li>
+                        <li><i class="fas fa-check text-danger"></i> XXE</li>
+                        <li><i class="fas fa-check text-danger"></i> XSS</li>
+                        <li><i class="fas fa-check text-danger"></i> Deserialization</li>
+                    </ul>
+                    <button class="btn btn-dark btn-lg mt-3">
+                        <i class="fas fa-arrow-right"></i> Accéder
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="env-card java position-relative" onclick="window.location.href='/java'">
+                    <span class="badge bg-danger warning-badge">VULNÉRABLE</span>
+                    <div class="env-icon text-warning">
+                        <i class="fab fa-java"></i>
+                    </div>
+                    <h3 class="mb-3">Environnement Java</h3>
+                    <p class="text-muted mb-4">
+                        Testez les vulnérabilités dans un environnement Java simulé avec visualisation de documents
+                    </p>
+                    <ul class="list-unstyled text-start">
+                        <li><i class="fas fa-check text-danger"></i> SSRF</li>
+                        <li><i class="fas fa-check text-danger"></i> RCE</li>
+                        <li><i class="fas fa-check text-danger"></i> XXE</li>
+                        <li><i class="fas fa-check text-danger"></i> XSS</li>
+                        <li><i class="fas fa-check text-danger"></i> Deserialization</li>
+                    </ul>
+                    <button class="btn btn-warning btn-lg mt-3">
+                        <i class="fas fa-arrow-right"></i> Accéder
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Informations</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Chaque environnement simule un serveur avec des fonctionnalités de visualisation de documents volontairement vulnérables.</p>
+                        <p><strong>Formats supportés:</strong> PDF, DOCX, XLSX, PPTX, SVG, XML, HTML, PNG, JPG, GIF, TXT, CSV, RTF, ODT, ODS, ODP, ZIP, JAR, EPUB, WEBM, MP4, MD</p>
+                        <p class="mb-0"><strong>Vulnérabilités testables:</strong> SSRF, RCE, XXE, XSS, Path Traversal, LFI, NTLM Leak, Deserialization</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

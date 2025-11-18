@@ -11,7 +11,7 @@ pip3 install -r requirements.txt
 ## Usage
 
 ```bash
-./uploadrenderallthethings [burp-collab] [-e extension] [-d]
+./uploadrenderallthethings [burp-collab] [-e extension] [-d] [--extended]
 ```
 
 Examples:
@@ -20,6 +20,8 @@ Examples:
 ./uploadrenderallthethings abc123.burpcollaborator.net -e pdf
 ./uploadrenderallthethings abc123.burpcollaborator.net -e svg
 ./uploadrenderallthethings abc123.burpcollaborator.net -e all
+./uploadrenderallthethings abc123.burpcollaborator.net -e xml --extended
+./uploadrenderallthethings abc123.burpcollaborator.net -e png --extended
 ./uploadrenderallthethings -d
 ```
 
@@ -37,6 +39,7 @@ Options:
   - `odt`, `ods`, `odp`: OpenDocument
   - `all`: Generates all payloads (default)
 - `-d, --delete`: Deletes all generated folders before creating new payloads (can be used alone)
+- `--extended`: Generates extended payloads with other formats content but target extension (e.g., SVG content with .xml extension, HTML content with .png extension). Structure: `<extension>/extended/<source_format>/<vulnerability>/<payload_file>`
 
 ## Directory Structure
 
@@ -51,7 +54,34 @@ The tool creates the following structure:
   │   └── ntlm1_technique.<ext>
   ├── lfi/
   │   └── lfi1_technique.<ext>
+  ├── extended/          (only with --extended flag)
+  │   ├── <source_format>/
+  │   │   ├── <vulnerability>/
+  │   │   │   └── <payload>.<target_ext>
+  │   │   └── ...
+  │   └── ...
   └── master.<ext>
+```
+
+**Extended Structure Example** (with `--extended` flag):
+```
+xml/
+  ├── xxe/
+  │   └── xxe1_entity.xml
+  ├── extended/
+  │   ├── svg/
+  │   │   ├── xxe/
+  │   │   │   └── xxe1_svg.xml        (SVG content, .xml extension)
+  │   │   ├── xss/
+  │   │   │   └── xss1_svg.xml        (SVG content, .xml extension)
+  │   │   └── ssrf/
+  │   │       └── ssrf1_svg.xml       (SVG content, .xml extension)
+  │   └── html/
+  │       ├── xss/
+  │       │   └── xss1_html.xml       (HTML content, .xml extension)
+  │       └── ssrf/
+  │           └── ssrf1_html.xml      (HTML content, .xml extension)
+  └── master.xml
 ```
 
 Each payload is named with the technique number and a synthetic name of the technique used.
