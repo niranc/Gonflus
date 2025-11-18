@@ -210,6 +210,61 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 | `/xss-html-img` | HTML | XSS | img onerror | HTML root |
 | `/rce-html-function` | HTML | RCE | Function() | HTML script |
 
+## Extended Payloads OOB Endpoints Table
+
+When using the `--extended` flag, additional payloads are generated with other formats content but target extension. Use this table to identify extended payload endpoints:
+
+| OOB Endpoint | Target Extension | Source Format | Vulnerability | Technique | Notes |
+|-------------|------------------|---------------|---------------|-----------|-------|
+| `/xxe-svg-xml` | XML | SVG | XXE | DOCTYPE + ENTITY in SVG | SVG content with .xml extension |
+| `/xxe-svg-xml-https` | XML | SVG | XXE | DOCTYPE + ENTITY HTTPS | SVG content with .xml extension |
+| `/xss-svg-xml` | XML | SVG | XSS | SVG onload | SVG content with .xml extension |
+| `/xss-svg-xml-script` | XML | SVG | XSS | SVG script tag | SVG content with .xml extension |
+| `/ssrf-svg-xml` | XML | SVG | SSRF | SVG image xlink:href | SVG content with .xml extension |
+| `/xss-html-xml` | XML | HTML | XSS | HTML script tag | HTML content with .xml extension |
+| `/xss-html-xml-img` | XML | HTML | XSS | HTML img onerror | HTML content with .xml extension |
+| `/ssrf-html-xml` | XML | HTML | SSRF | HTML img src | HTML content with .xml extension |
+| `/xss-html-svg` | SVG | HTML | XSS | HTML iframe in SVG foreignObject | HTML content with .svg extension |
+| `/xss-html-svg-script` | SVG | HTML | XSS | HTML script in SVG | HTML content with .svg extension |
+| `/xxe-xml-svg` | SVG | XML | XXE | DOCTYPE + ENTITY in SVG | XML content with .svg extension |
+| `/xss-svg-html` | HTML | SVG | XSS | SVG onload in HTML | SVG content with .html extension |
+| `/ssrf-svg-html` | HTML | SVG | SSRF | SVG image in HTML | SVG content with .html extension |
+| `/xxe-xml-html` | HTML | XML | XXE | DOCTYPE + ENTITY in HTML | XML content with .html extension |
+| `/xss-md-html` | HTML | MD | XSS | Markdown script in HTML | Markdown content with .html extension |
+| `/xss-html-txt` | TXT | HTML | XSS | HTML script tag | HTML content with .txt extension |
+| `/xss-html-txt-img` | TXT | HTML | XSS | HTML img onerror | HTML content with .txt extension |
+| `/xss-svg-txt` | TXT | SVG | XSS | SVG onload | SVG content with .txt extension |
+| `/xxe-xml-txt` | TXT | XML | XXE | DOCTYPE + ENTITY | XML content with .txt extension |
+| `/xss-csv-txt` | TXT | CSV | XSS | CSV script tag | CSV content with .txt extension |
+| `/xss-md-txt` | TXT | MD | XSS | Markdown script | Markdown content with .txt extension |
+| `/xss-html-csv` | CSV | HTML | XSS | HTML script tag | HTML content with .csv extension |
+| `/xss-txt-csv` | CSV | TXT | XSS | TXT script tag | TXT content with .csv extension |
+| `/xxe-xml-csv` | CSV | XML | XXE | DOCTYPE + ENTITY | XML content with .csv extension |
+| `/xss-html-md` | MD | HTML | XSS | HTML script tag | HTML content with .md extension |
+| `/xss-svg-md` | MD | SVG | XSS | SVG onload | SVG content with .md extension |
+| `/xxe-xml-md` | MD | XML | XXE | DOCTYPE + ENTITY | XML content with .md extension |
+| `/xss-html-markdown` | Markdown | HTML | XSS | HTML script tag | HTML content with .markdown extension |
+| `/xss-svg-markdown` | Markdown | SVG | XSS | SVG onload | SVG content with .markdown extension |
+| `/xxe-xml-markdown` | Markdown | XML | XXE | DOCTYPE + ENTITY | XML content with .markdown extension |
+| `/xss-svg-png` | PNG | SVG | XSS | SVG onload in PNG iTXt metadata | SVG content in PNG metadata (real PNG binary) |
+| `/ssrf-svg-png` | PNG | SVG | SSRF | SVG image in PNG iTXt metadata | SVG content in PNG metadata (real PNG binary) |
+| `/xss-html-png` | PNG | HTML | XSS | HTML script in PNG iTXt metadata | HTML content in PNG metadata (real PNG binary) |
+| `/xxe-xml-png` | PNG | XML | XXE | DOCTYPE + ENTITY in PNG iTXt metadata | XML content in PNG metadata (real PNG binary) |
+| `/xss-svg-jpg` | JPG | SVG | XSS | SVG onload in JPG COM segment | SVG content in JPG metadata (real JPG binary) |
+| `/ssrf-svg-jpg` | JPG | SVG | SSRF | SVG image in JPG COM segment | SVG content in JPG metadata (real JPG binary) |
+| `/xss-html-jpg` | JPG | HTML | XSS | HTML script in JPG COM segment | HTML content in JPG metadata (real JPG binary) |
+| `/xxe-xml-jpg` | JPG | XML | XXE | DOCTYPE + ENTITY in JPG COM segment | XML content in JPG metadata (real JPG binary) |
+| `/xss-svg-jpeg` | JPEG | SVG | XSS | SVG onload in JPEG COM segment | SVG content in JPEG metadata (real JPEG binary) |
+| `/ssrf-svg-jpeg` | JPEG | SVG | SSRF | SVG image in JPEG COM segment | SVG content in JPEG metadata (real JPEG binary) |
+| `/xss-html-jpeg` | JPEG | HTML | XSS | HTML script in JPEG COM segment | HTML content in JPEG metadata (real JPEG binary) |
+| `/xxe-xml-jpeg` | JPEG | XML | XXE | DOCTYPE + ENTITY in JPEG COM segment | XML content in JPEG metadata (real JPEG binary) |
+| `/xss-svg-gif` | GIF | SVG | XSS | SVG onload in GIF comment block | SVG content in GIF metadata (real GIF binary) |
+| `/ssrf-svg-gif` | GIF | SVG | SSRF | SVG image in GIF comment block | SVG content in GIF metadata (real GIF binary) |
+| `/xss-html-gif` | GIF | HTML | XSS | HTML script in GIF comment block | HTML content in GIF metadata (real GIF binary) |
+| `/xxe-xml-gif` | GIF | XML | XXE | DOCTYPE + ENTITY in GIF comment block | XML content in GIF metadata (real GIF binary) |
+
+**Note**: Extended payloads for images (PNG, JPG, JPEG, GIF) are real binary image files with malicious metadata. They can be parsed by ImageMagick, exiftool, and other metadata parsers.
+
 ## Supported File Formats
 
 ### Office Documents
@@ -521,13 +576,13 @@ Master payloads are available at the root of each extension directory:
 3. **Matroska segment overflow** - Invalid segment size in Matroska container - libwebm, FFmpeg - CVE-2019-11470
 
 ### Heap Buffer Overflow
-1. **Superframe VP9 malformé** - Invalid VP9 superframe structure - libvpx - CVE-2023-5217 (exploited in-the-wild)
-2. **Huffman table corrompue** - Corrupted WebP Huffman table in WEBM - libwebp - CVE-2023-4863 (BLASTPASS Pegasus)
-3. **Chunk size invalide** - Invalid chunk size causing heap overflow - All WEBM parsers - Multiple CVEs
+1. **Superframe VP9 malformed** - Invalid VP9 superframe structure - libvpx - CVE-2023-5217 (exploited in-the-wild)
+2. **Corrupted Huffman table** - Corrupted WebP Huffman table in WEBM - libwebp - CVE-2023-4863 (BLASTPASS Pegasus)
+3. **Invalid chunk size** - Invalid chunk size causing heap overflow - All WEBM parsers - Multiple CVEs
 
 ### Use-After-Free
-1. **Double-free** - Double-free dans libvpx/libwebm - libvpx, Chrome - CVE-2020-6418, CVE-2024-38365
-2. **Libération prématurée** - Premature free in VP8/VP9 decoder - libvpx, Firefox - CVE-2020-6418
+1. **Double-free** - Double-free in libvpx/libwebm - libvpx, Chrome - CVE-2020-6418, CVE-2024-38365
+2. **Premature free** - Premature free in VP8/VP9 decoder - libvpx, Firefox - CVE-2020-6418
 
 ### Integer Overflow / Underflow
 1. **Width overflow** - Width value > 2³² causing integer overflow - All WEBM parsers - CVE-2023-44488
@@ -550,7 +605,7 @@ Master payloads are available at the root of each extension directory:
 1. **OOB read** - Out-of-bounds read leaking heap addresses - libvpx, Chrome - CVE-2018-1000116
 2. **Heap leak** - Heap memory leak via malformed chunk - All parsers - Information disclosure
 
-**Note**: WEBM est basé sur le format binaire EBML/Matroska. Les vulnérabilités sont principalement liées au parsing binaire (heap overflow, OOB, UAF) et non aux vulnérabilités web classiques (XXE, SSRF, XSS). Les exploits sont souvent exploités in-the-wild (zero-click RCE).
+**Note**: WEBM is based on the binary EBML/Matroska format. Vulnerabilities are mainly related to binary parsing (heap overflow, OOB, UAF) and not classic web vulnerabilities (XXE, SSRF, XSS). Exploits are often used in-the-wild (zero-click RCE).
 
 ## Detailed MP4 Techniques
 
@@ -597,7 +652,7 @@ Master payloads are available at the root of each extension directory:
 1. **Video embed** - Embedding MP4 with script in metadata - Video.js, browsers - CVE-2021-23414
 2. **Track src bypass** - Track src with javascript: protocol - Video.js - CVE-2021-23414
 
-**Note**: MP4 utilise le format binaire basé sur des "atoms" (boîtes). Les vulnérabilités principales sont liées au parsing binaire (heap overflow, OOB, UAF, integer overflow) menant à RCE. Les exploits sont souvent exploités in-the-wild (WhatsApp 2019, BLASTPASS). SSRF et XSS sont possibles indirectement via thumbnailers ou parsers web, mais pas directement dans le format MP4 pur.
+**Note**: MP4 uses binary format based on "atoms" (boxes). Vulnerabilities are mainly in binary parsing (heap overflow, OOB, UAF, integer overflow) leading to RCE. Exploits are often used in-the-wild (WhatsApp 2019, BLASTPASS). Indirect SSRF and XSS are possible through thumbnailers or web parsers, but not directly in pure MP4 format.
 
 ## Detailed Markdown Techniques
 
@@ -639,7 +694,7 @@ Master payloads are available at the root of each extension directory:
 1. **Buffer overflow** - Large content causing buffer overflow in C++ renderers - C++ parsers - Potential RCE
 2. **String parsing** - Malformed brackets causing OOB in string parsing - Text parsers - Potential leak
 
-**Note**: Markdown est un format texte, mais les vulnérabilités principales viennent du rendu HTML/JavaScript dans les applications (éditeurs, convertisseurs). RCE est possible via XSS chain dans les apps Electron (VNote, Joplin, MarkText). SSRF est possible indirectement via les convertisseurs Markdown→PDF. Les exploits sont souvent exploités in-the-wild (2024-2025 dans les éditeurs Markdown).
+**Note**: Markdown is a text format, but vulnerabilities mainly come from HTML/JavaScript rendering in applications (editors, converters). RCE is possible via XSS chain in Electron apps (VNote, Joplin, MarkText). Indirect SSRF is possible through Markdown→PDF converters. Exploits are often used in-the-wild (2024-2025 in Markdown editors).
 
 ## Notes
 
@@ -680,3 +735,4 @@ See `test-app/README.md` for more details.
 ## Contribution
 
 Feel free to add new file formats or vulnerability types by creating new generator modules in the `generators/` directory.
+```
