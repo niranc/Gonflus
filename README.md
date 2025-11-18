@@ -31,6 +31,7 @@ Options:
   - `svg`, `xml`, `html`: Web Formats
   - `png`, `jpg`, `jpeg`, `gif`: Images
   - `webm`, `mp4`: Video Formats
+  - `md`, `markdown`: Markdown Files
   - `zip`, `jar`, `epub`: Archives
   - `txt`, `csv`, `rtf`: Text Files
   - `odt`, `ods`, `odp`: OpenDocument
@@ -211,6 +212,7 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 - **TXT**: XSS (2 techniques), SSRF (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
 - **CSV**: XSS (3 techniques), SSRF (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
 - **RTF**: SSRF (2 techniques), XSS (4 techniques), Path Traversal (3 techniques), RCE (4 techniques)
+- **Markdown (MD)**: RCE (7 techniques via XSS chain, OOB, internal), SSRF (3 techniques indirect), XSS (7 techniques), Information Leak (4 techniques), DoS (3 techniques), OOB (2 techniques)
 
 ## Master Payloads
 
@@ -240,6 +242,7 @@ Master payloads are available at the root of each extension directory:
 - `pptx/master.pptx` - Contains SSRF, XXE techniques
 - `webm/master.webm` - Contains OOB, Heap Overflow, UAF, Integer Overflow, RCE, DoS, Info Leak techniques
 - `mp4/master.mp4` - Contains OOB, Heap Overflow, UAF, Integer Overflow, RCE, DoS, Info Leak, SSRF, XSS techniques
+- `md/master.md` - Contains RCE (XSS chain, OOB, internal), SSRF, XSS, Info Leak, DoS, OOB techniques
 
 ## Detailed PDF Techniques
 
@@ -565,6 +568,48 @@ Master payloads are available at the root of each extension directory:
 2. **Track src bypass** - Track src with javascript: protocol - Video.js - CVE-2021-23414
 
 **Note**: MP4 utilise le format binaire basé sur des "atoms" (boîtes). Les vulnérabilités principales sont liées au parsing binaire (heap overflow, OOB, UAF, integer overflow) menant à RCE. Les exploits sont souvent exploités in-the-wild (WhatsApp 2019, BLASTPASS). SSRF et XSS sont possibles indirectement via thumbnailers ou parsers web, mais pas directement dans le format MP4 pur.
+
+## Detailed Markdown Techniques
+
+### RCE (Remote Code Execution)
+1. **XSS chain Electron apps** - `<script>require('child_process').exec(...)` - VNote, Joplin, Electron apps - CVE-2024-41662
+2. **VNote CVE-2024-41662** - XSS → RCE via img onerror - VNote - Exploited in-the-wild (2024)
+3. **MarkText DOM XSS → RCE** - `<details open ontoggle="require(...)">` - MarkText - CVE-2023-2318
+4. **md-to-pdf code injection** - JavaScript code injection in code blocks - md-to-pdf - CVE-2021-23639
+5. **OOB buffer overflow** - Large content + XSS chain - C++ renderers - Potential RCE
+6. **Internal exec** - Code blocks with shell commands - Internal tools - RCE via conversion
+7. **Frontmatter JS eval** - YAML frontmatter with JS eval - gray-matter lib - Potential 0-day
+
+### SSRF (Server-Side Request Forgery) - Indirect
+1. **Image link** - `![Image](http://...)` fetched by renderer - Markdown to PDF endpoints - CVE-2025-55161 (Stirling-PDF)
+2. **Internal link** - Links to internal services - Thumbnailers, converters - CVE-2025-57818 (Firecrawl)
+3. **Markdown to PDF conversion** - Links/images fetched during conversion - PDF conversion tools - SSRF chain
+
+### XSS (Cross-Site Scripting)
+1. **Details ontoggle** - `<details open ontoggle=alert(1)>` - All Markdown renderers - CVE-2025-61413, CVE-2025-57901
+2. **Script tag** - `<script>alert(document.cookie)</script>` - All renderers - CVE-2025-49420, CVE-2025-46734
+3. **Img onerror** - `<img src=x onerror=alert(1)>` - All renderers - Stored XSS
+4. **SVG onload** - `<svg onload=alert(1)>` - All renderers - DOM XSS
+5. **Mermaid diagram** - XSS in Mermaid code blocks - Mermaid renderers - XSS via diagrams
+6. **Iframe src** - `<iframe src="javascript:alert(1)">` - HTML renderers - XSS bypass
+7. **Clipboard paste** - Clipboard exfiltration via XSS - Editors - CVE-2025 (GitLab clipboard XSS)
+
+### Information Leak
+1. **Local file read** - `fetch('file:///etc/passwd')` via XSS - Electron apps - CVE-2023-0835 (markdown-pdf)
+2. **DOM leak** - Exfiltration of cookies/URLs via XSS - All web renderers - Information disclosure
+3. **Markdown PDF read** - Local file read via Node.js in PDF conversion - markdown-pdf - CVE-2023-0835
+4. **Credentials exfil** - Exfiltration of localStorage/sessionStorage - Web apps - Credential theft
+
+### DoS / Crash
+1. **Nested lists** - Deeply nested lists causing parser crash - All parsers - DoS via recursion
+2. **Infinite loop** - Circular references in links - Link parsers - DoS via loops
+3. **Large table** - Extremely large tables - Table parsers - Memory exhaustion
+
+### OOB (Out-of-Bounds) - Indirect
+1. **Buffer overflow** - Large content causing buffer overflow in C++ renderers - C++ parsers - Potential RCE
+2. **String parsing** - Malformed brackets causing OOB in string parsing - Text parsers - Potential leak
+
+**Note**: Markdown est un format texte, mais les vulnérabilités principales viennent du rendu HTML/JavaScript dans les applications (éditeurs, convertisseurs). RCE est possible via XSS chain dans les apps Electron (VNote, Joplin, MarkText). SSRF est possible indirectement via les convertisseurs Markdown→PDF. Les exploits sont souvent exploités in-the-wild (2024-2025 dans les éditeurs Markdown).
 
 ## Notes
 
