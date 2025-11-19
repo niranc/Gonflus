@@ -12,14 +12,22 @@ def create_polyglot_from_existing_payload(source_file, target_ext, burp_collab):
     source_ext = source_file.suffix[1:].lower()
     
     if target_ext == 'pdf':
-        if source_ext in ['zip', 'docx', 'xlsx', 'pptx', 'epub']:
+        if source_ext in ['zip', 'docx', 'xlsx', 'pptx', 'epub', 'jar', 'odt', 'ods', 'odp']:
             with open(source_file, 'rb') as f:
                 source_content = f.read()
             return create_pdf_polyglot_attachment(source_content, burp_collab)
-        elif source_ext in ['svg', 'xml', 'html']:
-            with open(source_file, 'r', encoding='utf-8') as f:
+        elif source_ext in ['svg', 'xml', 'html', 'txt', 'csv', 'rtf', 'md', 'markdown']:
+            with open(source_file, 'r', encoding='utf-8', errors='ignore') as f:
                 source_content = f.read()
             return create_pdf_polyglot_attachment(source_content.encode('utf-8'), burp_collab)
+        elif source_ext in ['png', 'jpg', 'jpeg', 'gif']:
+            with open(source_file, 'rb') as f:
+                source_content = f.read()
+            return create_pdf_polyglot_attachment(source_content, burp_collab)
+        elif source_ext in ['mp4', 'webm']:
+            with open(source_file, 'rb') as f:
+                source_content = f.read()
+            return create_pdf_polyglot_attachment(source_content, burp_collab)
     
     elif target_ext in ['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp']:
         if source_ext in ['png', 'jpg', 'jpeg', 'gif', 'svg', 'pdf', 'zip', 'jar']:
@@ -70,8 +78,13 @@ def create_polyglot_from_existing_payload(source_file, target_ext, burp_collab):
     return None
 
 def create_pdf_polyglot_attachment(payload_content, burp_collab):
+    if isinstance(payload_content, str):
+        payload_content = payload_content.encode('utf-8')
+    
+    payload_length = len(payload_content)
+    
     pdf_header = b'%PDF-1.4\n'
-    pdf_content = f'''1 0 obj
+    pdf_content_part1 = b'''1 0 obj
 <<
 /Type /Catalog
 /Pages 2 0 R
@@ -101,10 +114,11 @@ endobj
 3 0 obj
 <<
 /Type /EmbeddedFile
-/Length {len(payload_content) if isinstance(payload_content, bytes) else len(payload_content.encode('utf-8'))}
+/Length ''' + str(payload_length).encode('utf-8') + b'''
 >>
 stream
-{payload_content if isinstance(payload_content, bytes) else payload_content.encode('utf-8')}
+'''
+    pdf_content_part2 = b'''
 endstream
 endobj
 4 0 obj
@@ -122,10 +136,13 @@ trailer
 /Root 1 0 R
 >>
 startxref
-500
-'''.encode('utf-8')
-    pdf_trailer = b'\n%%EOF'
-    return pdf_header + pdf_content + pdf_trailer
+'''
+    
+    pdf_body = pdf_header + pdf_content_part1 + payload_content + pdf_content_part2
+    startxref_pos = len(pdf_body)
+    pdf_trailer = str(startxref_pos).encode('utf-8') + b'\n%%EOF'
+    
+    return pdf_body + pdf_trailer
 
 def create_docx_polyglot(payload_content, burp_collab, vuln_type='xxe'):
     from generators.extended_generator import create_docx_polyglot as _create_docx_polyglot
@@ -169,50 +186,115 @@ def generate_polyglots_from_existing(output_dir, target_ext, burp_collab):
     base_dir = output_dir.parent
     polyglot_dir = output_dir / 'polyglot'
     
+    from generators.pdf_generator import generate_pdf_payloads
+    from generators.xlsx_generator import generate_xlsx_payloads
+    from generators.docx_generator import generate_docx_payloads
+    from generators.pptx_generator import generate_pptx_payloads
+    from generators.svg_generator import generate_svg_payloads
+    from generators.xml_generator import generate_xml_payloads
+    from generators.html_generator import generate_html_payloads
+    from generators.image_generator import generate_image_payloads
+    from generators.archive_generator import generate_archive_payloads
+    from generators.text_generator import generate_text_payloads
+    from generators.office_generator import generate_office_payloads
+    from generators.webm_generator import generate_webm_payloads
+    from generators.mp4_generator import generate_mp4_payloads
+    from generators.markdown_generator import generate_markdown_payloads
+    
+    generators_map = {
+        'pdf': (generate_pdf_payloads, None),
+        'xlsx': (generate_xlsx_payloads, None),
+        'docx': (generate_docx_payloads, None),
+        'pptx': (generate_pptx_payloads, None),
+        'svg': (generate_svg_payloads, None),
+        'xml': (generate_xml_payloads, None),
+        'html': (generate_html_payloads, None),
+        'gif': (generate_image_payloads, 'gif'),
+        'jpg': (generate_image_payloads, 'jpg'),
+        'jpeg': (generate_image_payloads, 'jpg'),
+        'png': (generate_image_payloads, 'png'),
+        'zip': (generate_archive_payloads, 'zip'),
+        'jar': (generate_archive_payloads, 'jar'),
+        'txt': (generate_text_payloads, 'txt'),
+        'csv': (generate_text_payloads, 'csv'),
+        'rtf': (generate_text_payloads, 'rtf'),
+        'odt': (generate_office_payloads, 'odt'),
+        'ods': (generate_office_payloads, 'ods'),
+        'odp': (generate_office_payloads, 'odp'),
+        'epub': (generate_archive_payloads, 'epub'),
+        'webm': (generate_webm_payloads, None),
+        'mp4': (generate_mp4_payloads, None),
+        'md': (generate_markdown_payloads, None),
+        'markdown': (generate_markdown_payloads, None),
+    }
+    
     source_extensions = ['pdf', 'docx', 'xlsx', 'pptx', 'svg', 'xml', 'html', 'png', 'jpg', 'jpeg', 'gif', 'zip', 'jar', 'epub', 'odt', 'ods', 'odp', 'txt', 'csv', 'rtf', 'md', 'markdown', 'webm', 'mp4']
     
     files_created = False
     
-    for source_ext in source_extensions:
-        if source_ext == target_ext:
-            continue
+    with tempfile.TemporaryDirectory() as temp_base:
+        temp_base_path = Path(temp_base)
         
-        source_dir = base_dir / source_ext
-        if not source_dir.exists():
-            continue
-        
-        for vuln_dir in source_dir.iterdir():
-            if not vuln_dir.is_dir() or vuln_dir.name in ['polyglot', 'master', 'info', 'info_leak', 'dos', 'oob', 'path_traversal']:
+        for source_ext in source_extensions:
+            if source_ext == target_ext:
                 continue
             
-            vuln_type = vuln_dir.name
+            if source_ext not in generators_map:
+                continue
             
-            for source_file in vuln_dir.glob(f'*.{source_ext}'):
-                technique_name = source_file.stem
-                polyglot_content = create_polyglot_from_existing_payload(source_file, target_ext, burp_collab)
+            source_dir = base_dir / source_ext
+            temp_source_dir = temp_base_path / source_ext
+            
+            if source_dir.exists():
+                source_dir_to_use = source_dir
+            else:
+                generator_func, ext_param = generators_map[source_ext]
+                temp_source_dir.mkdir(exist_ok=True)
+                try:
+                    if ext_param:
+                        generator_func(temp_source_dir, ext_param, burp_collab)
+                    else:
+                        generator_func(temp_source_dir, burp_collab)
+                    source_dir_to_use = temp_source_dir
+                except Exception as e:
+                    print(f"[!] Error generating {source_ext} payloads for polyglot: {e}")
+                    continue
+            
+            if not source_dir_to_use.exists():
+                continue
+            
+            for vuln_dir in source_dir_to_use.iterdir():
+                if not vuln_dir.is_dir() or vuln_dir.name in ['polyglot', 'master', 'info', 'info_leak', 'dos', 'oob', 'path_traversal']:
+                    continue
                 
-                if polyglot_content:
-                    if not files_created:
-                        polyglot_dir.mkdir(exist_ok=True)
-                        files_created = True
+                vuln_type = vuln_dir.name
+                
+                for source_file in vuln_dir.glob(f'*.{source_ext}'):
+                    technique_name = source_file.stem
+                    polyglot_content = create_polyglot_from_existing_payload(source_file, target_ext, burp_collab)
                     
-                    source_polyglot_dir = polyglot_dir / source_ext
-                    source_polyglot_dir.mkdir(exist_ok=True)
-                    
-                    target_vuln_dir = source_polyglot_dir / vuln_type
-                    target_vuln_dir.mkdir(exist_ok=True)
-                    
-                    polyglot_filename = f"{technique_name}_{source_ext}.{target_ext}"
-                    polyglot_path = target_vuln_dir / polyglot_filename
-                    
-                    try:
-                        if isinstance(polyglot_content, bytes):
-                            with open(polyglot_path, 'wb') as f:
-                                f.write(polyglot_content)
-                        else:
-                            with open(polyglot_path, 'w', encoding='utf-8') as f:
-                                f.write(polyglot_content)
-                    except Exception as e:
-                        print(f"[!] Error creating polyglot {polyglot_filename}: {e}")
-                        continue
+                    if polyglot_content:
+                        if not files_created:
+                            polyglot_dir.mkdir(exist_ok=True)
+                            files_created = True
+                        
+                        source_polyglot_dir = polyglot_dir / source_ext
+                        source_polyglot_dir.mkdir(exist_ok=True)
+                        
+                        target_vuln_dir = source_polyglot_dir / vuln_type
+                        target_vuln_dir.mkdir(exist_ok=True)
+                        
+                        polyglot_filename = f"{technique_name}_{source_ext}.{target_ext}"
+                        polyglot_path = target_vuln_dir / polyglot_filename
+                        
+                        try:
+                            if isinstance(polyglot_content, bytes):
+                                with open(polyglot_path, 'wb') as f:
+                                    f.write(polyglot_content)
+                            else:
+                                with open(polyglot_path, 'w', encoding='utf-8') as f:
+                                    f.write(polyglot_content)
+                        except Exception as e:
+                            print(f"[!] Error creating polyglot {polyglot_filename}: {e}")
+                            continue
 

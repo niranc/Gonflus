@@ -24,7 +24,7 @@ Examples:
 ./uploadrenderallthethings abc123.burpcollaborator.net -e xml,svg,html
 ./uploadrenderallthethings abc123.burpcollaborator.net -e xml --polyglot
 ./uploadrenderallthethings abc123.burpcollaborator.net -e png --polyglot
-./uploadrenderallthethings abc123.burpcollaborator.net -e pdf,jpg toto.burpcollaborator.net
+./uploadrenderallthethings abc123.burpcollaborator.net -e
 ./uploadrenderallthethings -d
 ```
 
