@@ -24,7 +24,7 @@ def main():
     parser.add_argument('burp_collab', nargs='?', help='Burp Collaborator URL (ex: abc123.burpcollaborator.net)')
     parser.add_argument('-e', '--extension', help='Extension to generate (pdf, svg, docx, xlsx, png, jpg, gif, webm, mp4, md, all). Default: all', default='all')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete all generated directories before generating new payloads')
-    parser.add_argument('--extended', action='store_true', help='Generate extended payloads (other formats with target extension)')
+    parser.add_argument('--polyglot', action='store_true', help='Generate polyglot payloads (other formats with target extension)')
     args = parser.parse_args()
 
     base_dir = Path.cwd()
@@ -49,9 +49,6 @@ def main():
     ext_filter = args.extension.lower()
     
     print(f"[+] Generating payloads targeting: {burp_collab}")
-    if ext_filter != 'all':
-        print(f"[+] Filter: {ext_filter.upper()} only")
-    print("[+] Creating directory structure...\n")
     
     generators = {
         'pdf': (generate_pdf_payloads, None),
@@ -83,12 +80,29 @@ def main():
     try:
         if ext_filter == 'all':
             extensions_to_generate = list(generators.keys())
+            print(f"[+] Generating all extensions")
         else:
-            if ext_filter not in generators:
-                print(f"[!] Error: Extension '{ext_filter}' not supported")
+            ext_list = [e.strip() for e in ext_filter.split(',')]
+            extensions_to_generate = []
+            invalid_extensions = []
+            
+            for ext in ext_list:
+                if ext in generators:
+                    extensions_to_generate.append(ext)
+                else:
+                    invalid_extensions.append(ext)
+            
+            if invalid_extensions:
+                print(f"[!] Error: Extension(s) '{', '.join(invalid_extensions)}' not supported")
                 print(f"[!] Supported extensions: {', '.join(generators.keys())}, all")
                 sys.exit(1)
-            extensions_to_generate = [ext_filter]
+            
+            if len(extensions_to_generate) == 1:
+                print(f"[+] Filter: {extensions_to_generate[0].upper()} only")
+            else:
+                print(f"[+] Filter: {', '.join([e.upper() for e in extensions_to_generate])}")
+        
+        print("[+] Creating directory structure...\n")
         
         for ext in extensions_to_generate:
             generator_func, ext_param = generators[ext]
@@ -101,18 +115,18 @@ def main():
             else:
                 generator_func(ext_dir, burp_collab)
             
-            if args.extended:
-                print(f"[+] Generating extended {ext.upper()} payloads...")
+            if args.polyglot:
+                print(f"[+] Generating polyglot {ext.upper()} payloads...")
                 generate_extended_payloads(ext_dir, ext, burp_collab)
-                print(f"[✓] Extended {ext.upper()} completed")
+                print(f"[✓] Polyglot {ext.upper()} completed")
             
             print(f"[✓] {ext.upper()} completed\n")
 
         print("[+] All payloads generated successfully!")
         print(f"[+] Files created in: {base_dir}")
-        if args.extended:
+        if args.polyglot:
             print(f"[+] Structure: <extension>/<vulnerability>/<payload_file>")
-            print(f"[+] Extended structure: <extension>/extended/<source_format>/<vulnerability>/<payload_file>")
+            print(f"[+] Polyglot structure: <extension>/polyglot/<source_format>/<vulnerability>/<payload_file>")
         else:
             print(f"[+] Structure: <extension>/<vulnerability>/<payload_file>")
     except Exception as error:
