@@ -120,6 +120,13 @@ When you receive an OOB request on your Burp Collaborator, use this table to ide
 | `/video` | PDF | SSRF | JavaScript video HTML | /OpenAction → /JavaScript → video src |
 | `/audio` | PDF | SSRF | JavaScript audio HTML | /OpenAction → /JavaScript → audio src |
 | `/audio-source` | PDF | SSRF | JavaScript audio source HTML | /OpenAction → /JavaScript → audio source |
+| `/make-entire-document-clickable` | PDF | SSRF | jsPDF SubmitForm | /Annot → /A → /SubmitForm |
+| `/track-when-opening-pdf-filesystem` | PDF | SSRF | jsPDF track opening | /Annot → /AA → /PV → /JavaScript |
+| `/track-when-closing-pdf-filesystem` | PDF | SSRF | jsPDF track closing | /Annot → /AA → /PC → /JavaScript |
+| `/enumerator` | PDF | SSRF | jsPDF object enumerator | /Annot → /A → /JavaScript |
+| `/pdf-ssrf` | PDF | SSRF | jsPDF Chrome submitForm | /Annot → /A → /JavaScript → submitForm |
+| `/extracting-text` | PDF | SSRF | jsPDF Chrome text extraction | /Annot → /A → /JavaScript → submitForm |
+| `/injection-overwrite-url` | PDF | SSRF | jsPDF Chrome URL overwrite | /Annot → /A → /URI |
 | `\\<burp>\\pwn.png` | PDF | NTLM Leak | XObject Image UNC path | /XObject → /Subtype /Image → /URL or /SMask |
 | `\\<burp>\\font.ttf` | PDF | NTLM Leak | FontFile2/3 UNC path | /Font → /FontFile2 or /FontFile3 |
 | `file:///etc/passwd` | PDF | LFI | GoToR file:/// | /Annot → /A → /GoToR → /F |
@@ -514,7 +521,7 @@ OpenDocument files are ZIP archives, similar to DOCX/XLSX/PPTX:
 ## Supported File Formats
 
 ### Office Documents
-- **PDF**: SSRF (24 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques including Ghostscript/PostScript and JavaScript), XSS (12 techniques including sandbox bypass and injections), Info Disclosure (5 techniques using Excel/Office functions)
+- **PDF**: SSRF (31 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques including Ghostscript/PostScript and JavaScript), XSS (20 techniques including sandbox bypass and injections), Info Disclosure (5 techniques using Excel/Office functions)
 - **DOCX**: SSRF (5 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques)
 - **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques), Info Disclosure (5 techniques using Excel functions)
 - **ODT/ODS/ODP**: XXE (2 techniques), XSS (1 technique), Info Disclosure (5 techniques for ODT/ODS using Excel/Office functions)
@@ -588,6 +595,14 @@ Master payloads are available at the root of each extension directory:
 8. **FontMatrix injection (PDF.js)** - `/Font → /FontMatrix` - Injection via FontMatrix, works on vulnerable PDF.js
 9. **JavaScript sandbox bypass Apryse WebViewer SDK** - `/Names → /JavaScript` - Sandbox bypass in Apryse WebViewer SDK (10.9.x - 10.12.0)
 10-12. **Simple versions for tests** - Simple XSS payloads without Burp Collaborator for quick testing
+13. **pdf-lib Acrobat alert 1 of PDF injection** - `/Annot → /A → /JavaScript` - pdf-lib generated PDFs with JavaScript alert injection
+14. **pdf-lib Acrobat steal contents of PDF with JS** - `/Annot → /A → /JavaScript` - pdf-lib generated PDFs extracting PDF contents via JavaScript
+15. **pdf-lib Acrobat steal contents of PDF without JS** - PDF structure manipulation - pdf-lib generated PDFs extracting contents without JavaScript
+16. **jsPDF Acrobat executing automatically when closed** - `/Annot → /AA → /PC → /JavaScript` - jsPDF generated PDFs executing JavaScript on close
+17. **jsPDF Acrobat executing automatically without click** - `/Annot → /AA → /PV → /JavaScript` - jsPDF generated PDFs executing JavaScript automatically
+18. **jsPDF hybrid** - `/Annot → /A → /JavaScript` - jsPDF generated hybrid PDFs with JavaScript execution
+19. **jsPDF Chrome JS execution** - `/Annot → /A → /JavaScript` - jsPDF generated PDFs for Chrome with JavaScript execution
+20. **jsPDF Chrome enumerator** - `/Annot → /A → /JavaScript` - jsPDF generated PDFs for Chrome with object enumeration
 
 ### Info Disclosure
 1. **CELL("filename")** - `/Info → /Author` and `/Creator` - Formula directly in the PDF Info metadata - The information appears in the document properties (Author/Creator)
@@ -623,6 +638,13 @@ Master payloads are available at the root of each extension directory:
 22. **JavaScript video HTML** - `/OpenAction → /JavaScript → video src` - Acrobat Reader with JavaScript
 23. **JavaScript audio HTML** - `/OpenAction → /JavaScript → audio src` - Acrobat Reader with JavaScript
 24. **JavaScript audio source HTML** - `/OpenAction → /JavaScript → audio source` - Acrobat Reader with JavaScript
+25. **jsPDF Acrobat make entire document clickable** - `/Annot → /A → /SubmitForm` - jsPDF generated PDFs with form submission
+26. **jsPDF Acrobat track when opening PDF filesystem** - `/Annot → /AA → /PV → /JavaScript` - jsPDF generated PDFs tracking file system access
+27. **jsPDF Acrobat track when closing PDF filesystem** - `/Annot → /AA → /PC → /JavaScript` - jsPDF generated PDFs tracking file system access on close
+28. **jsPDF Acrobat enumerator** - `/Annot → /A → /JavaScript` - jsPDF generated PDFs with object enumeration
+29. **jsPDF Chrome PDF SSRF** - `/Annot → /A → /JavaScript → submitForm` - jsPDF generated PDFs with form submission to remote URL
+30. **jsPDF Chrome extracting text** - `/Annot → /A → /JavaScript → submitForm` - jsPDF generated PDFs extracting text and submitting
+31. **jsPDF Chrome injection overwrite URL** - `/Annot → /A → /URI` - jsPDF generated PDFs with URL overwrite injection
 
 ### NTLM Leak
 25. **XObject Image UNC path** - `/XObject → /Subtype /Image → /URL or /SMask` - Windows + iText7, PDFBox, Syncfusion, Aspose, wkhtmltopdf
@@ -974,6 +996,7 @@ See `test-app/README.md` for more details.
 
 ## References
 
+- [PortSwigger portable-data-exfiltration](https://github.com/PortSwigger/portable-data-exfiltration/) - Repository containing PDF injection techniques and enumerators
 - [SVG SSRF Cheatsheet](https://github.com/allanlw/svg-cheatsheet) - Comprehensive cheatsheet for exploiting server-side SVG processors
 - [Malicious PDF](https://github.com/jonaslejon/malicious-pdf) - Collection of malicious PDF files for security testing
 - [PayloadsAllThePDFs](https://github.com/luigigubello/PayloadsAllThePDFs) - Collection of PDF payloads for security testing
