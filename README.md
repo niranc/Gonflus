@@ -1,5 +1,7 @@
 # UploadRenderAllTheThings
 
+![Jesus save me - jpg or PDF?](images/jesus-jpg-or-pdf.jpg)
+
 A comprehensive payload generator for security testing of file uploads. It generates all possible payloads for SSRF, XXE, RCE, XSS, Path Traversal, NTLM Leak, LFI, and other vulnerabilities in all common file formats.
 
 ## Installation
