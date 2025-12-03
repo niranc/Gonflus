@@ -1,4 +1,5 @@
 from pathlib import Path
+from PIL import Image, PngImagePlugin
 
 
 def _write_text_file(path, content):
@@ -261,6 +262,49 @@ startxref
     _write_text_file(ai_dir / f"{base_name}_comment.{ext}", pdf_comment)
 
 
+def _generate_ai_for_image(output_dir, ai_dir, ext, prompt):
+    base_name = "ai"
+
+    if ext == "png":
+        img = Image.new("RGB", (200, 200), (255, 255, 255))
+
+        meta_description = PngImagePlugin.PngInfo()
+        meta_description.add_text("Description", prompt)
+        img.save(ai_dir / f"{base_name}_description.{ext}", pnginfo=meta_description)
+
+        meta_author = PngImagePlugin.PngInfo()
+        meta_author.add_text("Author", prompt)
+        img.save(ai_dir / f"{base_name}_author.{ext}", pnginfo=meta_author)
+
+        meta_other = PngImagePlugin.PngInfo()
+        meta_other.add_text("AI-Prompt", prompt)
+        img.save(ai_dir / f"{base_name}_metadata.{ext}", pnginfo=meta_other)
+
+        img.save(ai_dir / f"{base_name}_body.{ext}")
+
+        meta_comment = PngImagePlugin.PngInfo()
+        meta_comment.add_text("Comment", prompt)
+        img.save(ai_dir / f"{base_name}_comment.{ext}", pnginfo=meta_comment)
+    elif ext in {"jpg", "jpeg"}:
+        img = Image.new("RGB", (200, 200), (255, 255, 255))
+
+        img.save(ai_dir / f"{base_name}_description.{ext}", "JPEG", quality=95, comment=f"Description: {prompt}".encode("utf-8"))
+        img.save(ai_dir / f"{base_name}_author.{ext}", "JPEG", quality=95, comment=f"Author: {prompt}".encode("utf-8"))
+        img.save(ai_dir / f"{base_name}_metadata.{ext}", "JPEG", quality=95, comment=f"AI-Prompt: {prompt}".encode("utf-8"))
+        img.save(ai_dir / f"{base_name}_body.{ext}", "JPEG", quality=95)
+        img.save(ai_dir / f"{base_name}_comment.{ext}", "JPEG", quality=95, comment=f"Comment: {prompt}".encode("utf-8"))
+    elif ext == "gif":
+        img = Image.new("P", (200, 200))
+
+        img.save(ai_dir / f"{base_name}_description.{ext}", "GIF", save_all=True, comment=f"Description: {prompt}".encode("utf-8"))
+        img.save(ai_dir / f"{base_name}_author.{ext}", "GIF", save_all=True, comment=f"Author: {prompt}".encode("utf-8"))
+        img.save(ai_dir / f"{base_name}_metadata.{ext}", "GIF", save_all=True, comment=f"AI-Prompt: {prompt}".encode("utf-8"))
+        img.save(ai_dir / f"{base_name}_body.{ext}", "GIF", save_all=True)
+        img.save(ai_dir / f"{base_name}_comment.{ext}", "GIF", save_all=True, comment=f"Comment: {prompt}".encode("utf-8"))
+    else:
+        _generate_ai_for_generic(ai_dir, ext, prompt)
+
+
 def _generate_ai_for_generic(ai_dir, ext, prompt):
     base_name = "ai"
     description = f"AI file for .{ext}\nDescription: {prompt}\n"
@@ -296,6 +340,8 @@ def generate_ai_payloads(output_dir, ext, prompt):
         _generate_ai_for_text(ai_dir, normalized_ext, prompt)
     elif normalized_ext == "pdf":
         _generate_ai_for_pdf(ai_dir, normalized_ext, prompt)
+    elif normalized_ext in {"png", "jpg", "jpeg", "gif"}:
+        _generate_ai_for_image(output_dir, ai_dir, normalized_ext, prompt)
     else:
         _generate_ai_for_generic(ai_dir, normalized_ext, prompt)
 
