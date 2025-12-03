@@ -383,7 +383,7 @@ When using the `--polyglot` flag, the tool generates polyglot files that combine
 
 **Key Feature**: The polyglot system automatically creates polyglots for EVERY existing payload technique. For example, if you have `ssrf1_document_rels.docx`, the system will create `ssrf1_document_rels_docx.pdf`, `ssrf1_document_rels_docx.xml`, `ssrf1_document_rels_docx.png`, etc. - one polyglot for each target extension, preserving the original technique name.
 
-## AI Prompt Payloads (`--prompt-ai`)
+## AI Prompt Payloads
 
 The `--prompt-ai` option generates, for each selected extension, additional files in an `ai/` directory.  
 These files are legitimate documents (HTML, XML, Markdown, images, PDF, text, etc.) that contain your prompt in:
