@@ -12,29 +12,53 @@ For a structured overview of known rendering vulnerabilities, CVEs, PoCs, and th
 pip3 install -r requirements.txt
 ```
 
+## Usage rapide
+
+Commandes principales :
+
+- **Génération standard avec Burp Collaborator**  
+  - `./uploadrenderallthethings --burp-oob <collab.burp>`
+- **Filtrer par extension**  
+  - `./uploadrenderallthethings --burp-oob <collab.burp> -e pdf`
+  - `./uploadrenderallthethings --burp-oob <collab.burp> -e pdf,jpg,html`
+- **Polyglots**  
+  - `./uploadrenderallthethings --burp-oob <collab.burp> -e xml --polyglot`
+  - `./uploadrenderallthethings --burp-oob <collab.burp> -e png --polyglot`
+- **Webshells**  
+  - `./uploadrenderallthethings --burp-oob <collab.burp> -e pdf --webshell`
+  - `./uploadrenderallthethings --burp-oob <collab.burp> -e pdf,html --webshell`
+- **Payloads IA (répertoire ai/ par extension)**  
+  - `./uploadrenderallthethings --prompt-ia "print something malicious"`
+  - `./uploadrenderallthethings --burp-oob <collab.burp> -e pdf,html --prompt-ia "print something malicious"`
+- **Nettoyage des dossiers générés uniquement**  
+  - `./uploadrenderallthethings -d`
+
 ## Usage
 
 ```bash
-./uploadrenderallthethings [burp-collab] [-e extension] [-d] [--polyglot]
+./uploadrenderallthethings [--burp-oob <collab.burp>] [-e extension] [-d] [--polyglot] [--webshell] [--prompt-ia "prompt"]
 ```
 
 Examples:
 ```bash
-./uploadrenderallthethings abc123.burpcollaborator.net
-./uploadrenderallthethings abc123.burpcollaborator.net -e pdf
-./uploadrenderallthethings abc123.burpcollaborator.net -e svg
-./uploadrenderallthethings abc123.burpcollaborator.net -e all
-./uploadrenderallthethings abc123.burpcollaborator.net -e pdf,jpg
-./uploadrenderallthethings abc123.burpcollaborator.net -e xml,svg,html
-./uploadrenderallthethings abc123.burpcollaborator.net -e xml --polyglot
-./uploadrenderallthethings abc123.burpcollaborator.net -e png --polyglot
-./uploadrenderallthethings abc123.burpcollaborator.net -e
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e pdf
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e svg
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e all
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e pdf,jpg
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e xml,svg,html
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e xml --polyglot
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e png --polyglot
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e pdf --webshell
+./uploadrenderallthethings --burp-oob abc123.burpcollaborator.net -e pdf,html --webshell
+./uploadrenderallthethings --prompt-ia "print something malicious"
 ./uploadrenderallthethings -d
 ```
 
 **Note**: The `-d` option can be used alone to delete all generated folders without needing to specify Burp Collaborator.
 
 Options:
+- `--burp-oob`: Burp Collaborator host utilisé pour toutes les payloads nécessitant un endpoint OOB (obligatoire sauf si vous utilisez uniquement `--prompt-ia` ou `-d`)
 - `-e, --extension`: Specify the extension(s) to generate (can specify multiple extensions separated by commas):
   - `pdf`, `docx`, `xlsx`, `pptx`: Office Documents
   - `svg`, `xml`, `html`: Web Formats
@@ -48,6 +72,8 @@ Options:
   - Examples: `-e pdf`, `-e pdf,jpg`, `-e xml,svg,html`
 - `-d, --delete`: Deletes all generated folders before creating new payloads (can be used alone)
 - `--polyglot`: Generates polyglot payloads with other formats content but target extension (e.g., SVG content with .xml extension, HTML content with .png extension, PDF+ZIP polyglot). Structure: `<extension>/polyglot/<source_format>/<vulnerability>/<payload_file>`
+- `--webshell`: Generates webshell payloads embedded in legitimate files of the target extension. For each extension, creates webshells for multiple backends (PHP, JSP, ASP, ASPX, Python, Node.js, Ruby, Perl, ColdFusion, etc.) with 3 payload types: `id` (executes `id` command), `cmd` (webshell with `cmd` parameter), and `burp` (sends request to Burp Collaborator). Structure: `<extension>/webshell/<backend>/webshell1_<type>.<ext>`
+- `--prompt-ia`: Génère, pour chaque extension sélectionnée, un répertoire `ai/` contenant plusieurs fichiers (`ai_description.<ext>`, `ai_author.<ext>`, `ai_metadata.<ext>`, `ai_body.<ext>`, `ai_comment.<ext>`) avec le prompt injecté dans les métadonnées, le corps et les commentaires du fichier quand le format le permet
 
 ## Directory Structure
 
@@ -67,6 +93,12 @@ The tool creates the following structure:
   │   │   ├── <vulnerability>/
   │   │   │   └── <technique>_<source_ext>.<target_ext>
   │   │   └── ...
+  │   └── ...
+  ├── webshell/          (only with --webshell flag)
+  │   ├── <backend>/
+  │   │   ├── webshell1_id.<ext>
+  │   │   ├── webshell1_cmd.<ext>
+  │   │   └── webshell1_burp.<ext>
   │   └── ...
   └── master.<ext>
 ```
@@ -237,6 +269,32 @@ When using the `--polyglot` flag, polyglot payloads are generated by combining a
 **Structure**: `<extension>/polyglot/<source_format>/<vulnerability>/<technique>_<source_ext>.<target_ext>`
 
 All polyglots reuse the same OOB endpoints as their source format. Refer to the main OOB Endpoints Table above for endpoint details.
+
+**Webshell Structure Example** (with `--webshell` flag):
+```
+pdf/
+  ├── ssrf/
+  │   └── ssrf1_xobject_image.pdf
+  ├── webshell/
+  │   ├── php/
+  │   │   ├── webshell1_id.pdf        (PHP webshell executing 'id', embedded in PDF)
+  │   │   ├── webshell1_cmd.pdf       (PHP webshell with cmd parameter, embedded in PDF)
+  │   │   └── webshell1_burp.pdf     (PHP webshell sending request to Burp, embedded in PDF)
+  │   ├── jsp/
+  │   │   ├── webshell1_id.pdf        (JSP webshell executing 'id', embedded in PDF)
+  │   │   ├── webshell1_cmd.pdf       (JSP webshell with cmd parameter, embedded in PDF)
+  │   │   └── webshell1_burp.pdf      (JSP webshell sending request to Burp, embedded in PDF)
+  │   └── ... (other backends: asp, aspx, python, nodejs, ruby, perl, coldfusion)
+  └── master.pdf
+```
+
+**Note**: Webshell payloads are embedded in legitimate files of the target extension. For example:
+- PDF webshells are valid PDF files with webshell code embedded in annotations, JavaScript, or metadata
+- DOCX webshells are valid DOCX files with webshell code embedded in XML comments or document content
+- HTML/SVG webshells are valid HTML/SVG files with webshell code embedded in comments or script tags
+- Image webshells (PNG/JPG) are valid image files with webshell code appended after image headers
+
+This approach helps bypass upload filters by using legitimate file formats that contain the webshell code.
 
 **Important**: When you see a polyglot file like `ssrf1_document_rels_docx.pdf`, it means:
 - The file has a `.pdf` extension (target extension)

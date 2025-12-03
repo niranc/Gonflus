@@ -18,13 +18,17 @@ from generators.webm_generator import generate_webm_payloads
 from generators.mp4_generator import generate_mp4_payloads
 from generators.markdown_generator import generate_markdown_payloads
 from generators.extended_generator import generate_extended_payloads
+from generators.webshell_generator import generate_webshell_payloads
+from generators.ai_generator import generate_ai_payloads
 
 def main():
     parser = argparse.ArgumentParser(description='Generate all possible file upload payloads for security testing')
-    parser.add_argument('burp_collab', nargs='?', help='Burp Collaborator URL (ex: abc123.burpcollaborator.net)')
+    parser.add_argument('--burp-oob', dest='burp_collab', help='Burp Collaborator URL (ex: abc123.burpcollaborator.net)')
     parser.add_argument('-e', '--extension', help='Extension to generate (pdf, svg, docx, xlsx, png, jpg, gif, webm, mp4, md, all). Default: all', default='all')
     parser.add_argument('-d', '--delete', action='store_true', help='Delete all generated directories before generating new payloads')
     parser.add_argument('--polyglot', action='store_true', help='Generate polyglot payloads (other formats with target extension)')
+    parser.add_argument('--webshell', action='store_true', help='Generate webshell payloads for all backends in <extension>/webshell/<backend>/ structure')
+    parser.add_argument('--prompt-ia', dest='prompt_ia', help='Prompt IA à intégrer dans des fichiers dédiés dans <extension>/ai/')
     args = parser.parse_args()
 
     base_dir = Path.cwd()
@@ -39,11 +43,11 @@ def main():
                 shutil.rmtree(ext_dir)
                 print(f"[✓] Deleted {ext}/")
         print("[+] Cleanup completed\n")
-        if not args.burp_collab:
+        if not args.burp_collab and not args.prompt_ia:
             return
     
-    if not args.burp_collab:
-        parser.error("burp_collab is required unless using -d option")
+    if not args.burp_collab and not args.prompt_ia:
+        parser.error("--burp-oob is required unless using -d option or --prompt-ia")
     
     burp_collab = args.burp_collab
     ext_filter = args.extension.lower()
@@ -120,6 +124,16 @@ def main():
                 generate_extended_payloads(ext_dir, ext, burp_collab)
                 print(f"[✓] Polyglot {ext.upper()} completed")
             
+            if args.webshell:
+                print(f"[+] Generating webshell {ext.upper()} payloads...")
+                generate_webshell_payloads(ext_dir, ext, burp_collab)
+                print(f"[✓] Webshell {ext.upper()} completed")
+
+            if args.prompt_ia:
+                print(f"[+] Generating AI {ext.upper()} payloads...")
+                generate_ai_payloads(ext_dir, ext, args.prompt_ia)
+                print(f"[✓] AI {ext.upper()} completed")
+            
             print(f"[✓] {ext.upper()} completed\n")
 
         print("[+] All payloads generated successfully!")
@@ -127,7 +141,9 @@ def main():
         if args.polyglot:
             print(f"[+] Structure: <extension>/<vulnerability>/<payload_file>")
             print(f"[+] Polyglot structure: <extension>/polyglot/<source_format>/<vulnerability>/<payload_file>")
-        else:
+        if args.webshell:
+            print(f"[+] Webshell structure: <extension>/webshell/<backend>/webshell{1,2,3}_<type>.<ext>")
+        if not args.polyglot and not args.webshell:
             print(f"[+] Structure: <extension>/<vulnerability>/<payload_file>")
     except Exception as error:
         print(f"[!] Error during generation: {error}")
