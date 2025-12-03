@@ -1,6 +1,6 @@
 # Gonflus
 
-![Jesus save me - jpg or PDF?](images/gonflus.jpeg)
+![Gonflus](images/gonflus.jpg)
 
 A comprehensive payload generator for security testing of file uploads, activated with the `--burp-oob` option.  
 It produces payloads for various vulnerabilities like SSRF, XXE, RCE, and XSS across common file formats.  
