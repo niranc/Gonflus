@@ -2,7 +2,7 @@
 
 This document lists known rendering behaviors, associated vulnerabilities (SSRF, XXE, RCE, XSS, LFI, Information Leak, DoS, etc.), public CVEs when available, and the main public PoCs/repositories.
 
-It is organized by **file extension** supported by `UploadRenderAllTheThings`.
+It is organized by **file extension** supported by `Gonflus`.
 
 ---
 
@@ -231,7 +231,7 @@ It is organized by **file extension** supported by `UploadRenderAllTheThings`.
 
 ## Summary
 
-- Every format handled by `UploadRenderAllTheThings` has **public PoCs** or **documented patterns** that demonstrate:
+- Every format handled by `Gonflus` has **public PoCs** or **documented patterns** that demonstrate:
   - **SSRF / XXE** via external resources (images, stylesheets, metadata, rels, DOCTYPE, etc.).
   - **RCE** via rendering engines (Ghostscript, ImageMagick, Office, Electron, media frameworks, Node.js).
   - **XSS / LFI / Information Leak / DoS** in different contexts (browsers, viewers, office suites, conversion services).
