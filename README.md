@@ -39,7 +39,7 @@ For a structured overview of known rendering vulnerabilities, CVEs, PoCs, and th
 - [Detailed MP4 Techniques](#detailed-mp4-techniques): MP4 atom-based vulnerabilities (RCE, OOB, heap overflow, SSRF, XSS).
 - [Detailed Markdown Techniques](#detailed-markdown-techniques): XSS→RCE chains, SSRF via converters, and info leaks.
 - [Notes](#notes): Usage notes and security considerations.
-- [Test Application](#test-application): Embedded test web app for validating uploads.
+- [Vulnerable Image Environments](#vulnerable-image-environments): Dockerized lab for server-side PNG/JPG/JPEG rendering with ImageMagick.
 - [References](#references): External resources and research used to build the payload set.
 - [Contribution](#contribution): How to extend the tool with new formats or techniques.
 
@@ -266,13 +266,13 @@ If your collaborator is triggered by a payload, use `Ctrl + F` to search for the
 | `/foreignobject-iframe` | SVG | SSRF | <foreignObject><iframe src="http://…"> | SVG root |
 | `file:///etc/passwd` | SVG | LFI | <image href="file:///etc/passwd"> | SVG root |
 | `/xxe-svg` | SVG | XXE | DOCTYPE + ENTITY direct | SVG root |
-| `/xxe-png` | PNG | XXE/SSRF | iTXt chunk "XML:com.adobe.xmp" with DOCTYPE + URL | iTXt chunk |
+| `/xxe-png`, `/xxe-xmp`, `/xxe-xmp-file`, `/xxe-xmp-param`, `/xxe-xmp-nested`, `/xxe-svg`, `/xxe-xmp-data`, `/xxe-xmp-nested-send`, `/xxe-gopher`, `/xxe-php` | PNG | XXE | iTXt chunk "XML:com.adobe.xmp" with various DOCTYPE + URL techniques | iTXt chunk |
+| `/ssrf-mvg`, `/ssrf-mvg-http`, `/ssrf-svg-https`, `/ssrf-svg-http`, `/ssrf-svg-ftp`, `/ssrf-gopher`, `/ssrf-ldap`, `/ssrf-image-https`, `/ssrf-image-http`, `/ssrf-svg-embedded`, `/ssrf-msl`, `/ssrf-epi`, `/ssrf-ps`, `/ssrf-text`, `/ssrf-multi-https`, `/ssrf-multi-http`, `/ssrf-multi-ftp`, `/ssrf-rar`, `/ssrf-zip` | PNG | SSRF | MVG/SVG with various delegate protocols (https, http, ftp, gopher, ldap, file, msl, epi, ps, text, rar, zip) | iTXt chunk with ImageMagick keyword |
+| `/rce-imagemagick`, `/rce-delegate`, `/rce-mvg`, `/rce-https`, `/rce-http`, `/rce-ftp`, `/rce-msl`, `/rce-text`, `/rce-epi`, `/rce-ps`, `/rce-svg-delegate`, `/rce-svg-script`, `/rce-backtick`, `/rce-dollar`, `/rce-exec`, `/rce-svg-https`, `/rce-svg-http`, `/rce-rar`, `/rce-zip` | PNG | RCE | ImageMagick delegate command injection via MVG/SVG with various techniques (url(), image over, backticks, $(), exec:, msl:, epi:, ps:, text:, rar:, zip:) | iTXt chunk with ImageMagick keyword |
 | `/xxe-jpg` | JPEG | XXE/SSRF | COM segment (0xFFFE) with DOCTYPE + URL | COM marker |
 | `/xxe-gif` | GIF | XXE/SSRF | Repeated comment blocks with DOCTYPE + URL | GIF comment extension |
 | `/rce-ghostscript` | PDF | RCE | Ghostscript PostScript injection | /Contents → PostScript code |
 | `/rce-postscript` | PDF | RCE | PostScript file operator | /Contents → PostScript %pipe% |
-| `/rce-imagemagick` | PNG | RCE | ImageMagick delegate command injection | iTXt chunk with delegate |
-| `/rce-delegate` | PNG | RCE | ImageMagick delegate wget/curl | iTXt chunk with delegate |
 | `/xxe-xml-1` | XML | XXE | DOCTYPE + ENTITY | XML root |
 | `/xxe-xml-4` | XML | XXE | Parameter entity | XML root |
 | `/xss-xml-script` | XML | XSS | Script tag | XML root |
@@ -406,7 +406,7 @@ These payloads are intended for authorized red teaming and defensive testing of 
 ### Images
 - **GIF**: SSRF/XXE (1 technique via comment blocks), XSS (1 technique via comment blocks)
 - **JPG/JPEG**: SSRF/XXE (1 technique via COM segment), XSS (1 technique via COM segment)
-- **PNG**: SSRF/XXE (1 technique via iTXt chunk), RCE (2 techniques ImageMagick), XSS (1 technique via iTXt chunk)
+- **PNG**: SSRF (20 techniques via MVG/SVG delegates), RCE (20 techniques ImageMagick delegates), XXE (10 techniques via XMP), XSS (1 technique via iTXt chunk)
 
 ### Video Formats
 - **WEBM**: OOB Read/Write (3 techniques), Heap Buffer Overflow (3 techniques), Use-After-Free (2 techniques), Integer Overflow (4 techniques), RCE (3 techniques), DoS/Crash (4 techniques), Information Leak (2 techniques)
@@ -582,10 +582,67 @@ These payloads are intended for authorized red teaming and defensive testing of 
 ## Detailed Image Techniques
 
 ### PNG
-- **iTXt chunk "XML:com.adobe.xmp" with DOCTYPE + URL** - iTXt chunk - ImageMagick, exiftool
-- **ImageMagick delegate command injection** - iTXt chunk with delegate - ImageMagick (CVE-2016-3714, ImageTragick)
-- **ImageMagick delegate wget/curl** - iTXt chunk with delegate SVG - ImageMagick
-- **XSS iTXt chunk with <svg onload=alert(1)> → ImageMagick or HTML preview** - iTXt chunk - Some old parsers
+
+#### SSRF (Server-Side Request Forgery) - 20 payloads
+1. **ssrf1_itxt.png** - XMP iTXt chunk with DOCTYPE + URL - ImageMagick, exiftool
+2. **ssrf2_mvg_url.png** - MVG with url(https://...) delegate - ImageMagick
+3. **ssrf3_mvg_http.png** - MVG with url(http://...) delegate - ImageMagick
+4. **ssrf4_mvg_ftp.png** - MVG with url(ftp://...) delegate - ImageMagick
+5. **ssrf5_svg_https.png** - SVG with xlink:href https - ImageMagick
+6. **ssrf6_svg_http.png** - SVG with xlink:href http - ImageMagick
+7. **ssrf7_svg_ftp.png** - SVG with xlink:href ftp - ImageMagick
+8. **ssrf8_mvg_gopher.png** - MVG with url(gopher://...) delegate - ImageMagick
+9. **ssrf9_mvg_ldap.png** - MVG with url(ldap://...) delegate - ImageMagick
+10. **ssrf10_mvg_file.png** - MVG with url(file://...) delegate - ImageMagick
+11. **ssrf11_mvg_image_https.png** - MVG with image over https - ImageMagick
+12. **ssrf12_mvg_image_http.png** - MVG with image over http - ImageMagick
+13. **ssrf13_svg_embedded.png** - SVG with embedded image and xlink - ImageMagick
+14. **ssrf14_mvg_msl.png** - MVG with msl: delegate - ImageMagick
+15. **ssrf15_mvg_epi.png** - MVG with epi: delegate (PostScript) - ImageMagick
+16. **ssrf16_mvg_ps.png** - MVG with ps: delegate - ImageMagick
+17. **ssrf17_mvg_text.png** - MVG with text: delegate - ImageMagick
+18. **ssrf18_svg_multi.png** - SVG with multiple protocols - ImageMagick
+19. **ssrf19_mvg_rar.png** - MVG with rar: delegate - ImageMagick
+20. **ssrf20_mvg_zip.png** - MVG with zip: delegate - ImageMagick
+
+#### RCE (Remote Code Execution) - 20 payloads
+1. **rce1_imagemagick.png** - MVG with url() and curl command - ImageMagick (CVE-2016-3714, ImageTragick)
+2. **rce2_imagemagick_delegate.png** - SVG with xlink:href and backticks - ImageMagick
+3. **rce3_mvg_delegate.png** - MVG with image over and $() - ImageMagick
+4. **rce4_mvg_label.png** - MVG with label: delegate - ImageMagick
+5. **rce5_svg_delegate.png** - SVG clean without backticks - ImageMagick
+6. **rce6_mvg_https_cmd.png** - MVG with https: and wget - ImageMagick
+7. **rce7_mvg_http_cmd.png** - MVG with http: and curl - ImageMagick
+8. **rce8_mvg_ftp.png** - MVG with ftp: delegate - ImageMagick
+9. **rce9_mvg_msl.png** - MVG with msl: delegate (Magick Scripting Language) - ImageMagick
+10. **rce10_mvg_text.png** - MVG with text: delegate - ImageMagick
+11. **rce11_mvg_epi.png** - MVG with epi: delegate (PostScript) - ImageMagick
+12. **rce12_mvg_ps.png** - MVG with ps: delegate - ImageMagick
+13. **rce13_svg_multi.png** - SVG with multiple xlink:href - ImageMagick
+14. **rce14_mvg_file.png** - MVG with file: delegate (local file read) - ImageMagick
+15. **rce15_mvg_rar.png** - MVG with rar: delegate - ImageMagick
+16. **rce16_mvg_zip.png** - MVG with zip: delegate - ImageMagick
+17. **rce17_mvg_backtick.png** - MVG with backticks `id` - ImageMagick
+18. **rce18_mvg_dollar.png** - MVG with $() command substitution - ImageMagick
+19. **rce19_svg_script.png** - SVG with embedded script - ImageMagick
+20. **rce20_mvg_exec.png** - MVG with exec: delegate - ImageMagick
+
+#### XXE (XML External Entity) - 10 payloads
+**⚠ IMPORTANT**: XXE via XMP does NOT work with ImageMagick alone. ImageMagick reads XMP metadata but does NOT parse it as XML with a vulnerable XML parser. For XXE to work, you need tools like **exiftool**, **libexif**, or other XMP parsers that actually parse XML. These payloads are included for completeness and will work with exiftool or other XMP parsers, but NOT with ImageMagick.
+
+1. **xxe1_itxt.png** - XMP iTXt chunk with basic DOCTYPE - exiftool, libexif (NOT ImageMagick)
+2. **xxe2_xmp_entity.png** - XMP with proper entity declaration - exiftool, libexif (NOT ImageMagick)
+3. **xxe3_xmp_file.png** - XMP with file:// protocol - exiftool, libexif (NOT ImageMagick)
+4. **xxe4_xmp_param.png** - XMP with parameter entity - exiftool, libexif (NOT ImageMagick)
+5. **xxe5_xmp_nested.png** - XMP with nested entities - exiftool, libexif (NOT ImageMagick)
+6. **xxe6_svg_itxt.png** - SVG with DOCTYPE in iTXt chunk - ImageMagick (if SVG is parsed)
+7. **xxe7_xmp_data.png** - XMP with data:// protocol - exiftool, libexif (NOT ImageMagick)
+8. **xxe8_xmp_expect.png** - XMP with expect:// protocol - exiftool, libexif (NOT ImageMagick)
+9. **xxe9_xmp_gopher.png** - XMP with gopher:// protocol - exiftool, libexif (NOT ImageMagick)
+10. **xxe10_xmp_phpfilter.png** - XMP with php://filter - exiftool, libexif (NOT ImageMagick)
+
+#### XSS (Cross-Site Scripting)
+- **xss1_itxt.svg.png** - iTXt chunk with <svg onload=alert(1)> → ImageMagick or HTML preview - Some old parsers
 
 ### JPEG
 - **COM segment (0xFFFE) with DOCTYPE + URL** - COM marker - ImageMagick, exiftool
@@ -813,27 +870,22 @@ These payloads are intended for authorized red teaming and defensive testing of 
 - Monitor your Burp Collaborator for successful payload executions
 - Master payloads might cause issues if certain techniques are incompatible - in such cases, use individual payloads
 
-## Test Application
+## Vulnerable Image Environments
 
-A web application is included in the `test-app/` directory to test uploaded files and view their rendered content.
+For hands-on testing of the PNG/JPG/JPEG payloads (including ImageTragick-style RCE), a minimal vulnerable lab is provided under `vuln-images/`:
 
-### Run the Test Server
+- `vuln-images/php/` – PHP + Apache + ImageMagick (upload + server-side `convert` on the uploaded file)
+
+The lab runs in a Docker container and exposes a tiny web UI for uploading images.  
+See `vuln-images/README.md` for very short build/run instructions.
+
+Quick commands from the repository root:
 
 ```bash
-cd test-app
-npm install
-npm start
+# PHP + Apache + ImageMagick  (http://localhost:8081)
+cd vuln-images && docker build -f php/Dockerfile -t gonflus-php-imagemagick .
+docker run --rm -p 8081:80 gonflus-php-imagemagick
 ```
-
-The server will be available at `http://localhost:3000`
-
-Features:
-- File upload via drag & drop or file browser
-- View uploaded files (images, PDFs, HTML, XML, etc.)
-- Download or delete uploaded files
-- Test all generated payloads for vulnerabilities
-
-See `test-app/README.md` for more details.
 
 ## References
 
