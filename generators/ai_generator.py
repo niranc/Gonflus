@@ -1,5 +1,5 @@
 from pathlib import Path
-from PIL import Image, PngImagePlugin
+from PIL import Image, ImageDraw, PngImagePlugin
 
 
 def _write_text_file(path, content):
@@ -303,6 +303,52 @@ def _generate_ai_for_image(output_dir, ai_dir, ext, prompt):
         img.save(ai_dir / f"{base_name}_comment.{ext}", "GIF", save_all=True, comment=f"Comment: {prompt}".encode("utf-8"))
     else:
         _generate_ai_for_generic(ai_dir, ext, prompt)
+
+    # Additional prompt-visualisation image (white background, black text)
+    # Size is adapted to the prompt length but capped to avoid huge images.
+    try:
+        max_width, max_height = 1024, 1024
+        min_width, min_height = 320, 180
+        chars_per_line = 40
+
+        # Simple wrapping to avoid a single very long line
+        words = str(prompt).split()
+        lines = []
+        current = []
+        current_len = 0
+        for w in words:
+            if current_len + len(w) + (1 if current else 0) > chars_per_line:
+                lines.append(" ".join(current))
+                current = [w]
+                current_len = len(w)
+            else:
+                current.append(w)
+                current_len += len(w) + (1 if current_len > 0 else 0)
+        if current:
+            lines.append(" ".join(current))
+        if not lines:
+            lines = [""]
+
+        line_height = 20
+        padding = 20
+        text_height = len(lines) * line_height
+        img_height = min(max(text_height + 2 * padding, min_height), max_height)
+        img_width = min(max_width, max(min_width, int(chars_per_line * 10)))
+
+        prompt_img = Image.new("RGB", (img_width, img_height), (255, 255, 255))
+        draw = ImageDraw.Draw(prompt_img)
+
+        y = (img_height - text_height) // 2
+        for line in lines:
+            # crude centering approximation
+            x = padding
+            draw.text((x, y), line, fill=(0, 0, 0))
+            y += line_height
+
+        prompt_img.save(ai_dir / f"{base_name}_prompt_image.{ext}")
+    except Exception:
+        # Best-effort: do not break generation if Pillow cannot render text
+        pass
 
 
 def _generate_ai_for_generic(ai_dir, ext, prompt):
