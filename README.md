@@ -39,7 +39,7 @@ For a structured overview of known rendering vulnerabilities, CVEs, PoCs, and th
 - [Detailed MP4 Techniques](#detailed-mp4-techniques): MP4 atom-based vulnerabilities (RCE, OOB, heap overflow, SSRF, XSS).
 - [Detailed Markdown Techniques](#detailed-markdown-techniques): XSS→RCE chains, SSRF via converters, and info leaks.
 - [Notes](#notes): Usage notes and security considerations.
-- [Vulnerable Image Environments](#vulnerable-image-environments): Dockerized lab for server-side PNG/JPG/JPEG rendering with ImageMagick.
+- [Vulnerable Environments](#vulnerable-environments): Dockerized labs for server-side file rendering (images and all file types).
 - [References](#references): External resources and research used to build the payload set.
 - [Contribution](#contribution): How to extend the tool with new formats or techniques.
 
@@ -58,6 +58,11 @@ Main commands:
 - **Filter by extension**  
   - `./gonflus --burp-oob <collab.burp> -e pdf`
   - `./gonflus --burp-oob <collab.burp> -e pdf,jpg,html`
+- **Filter by payload type**  
+  - `./gonflus --burp-oob <collab.burp> --payloads xss`
+  - `./gonflus --burp-oob <collab.burp> --payloads xxe,ssrf`
+  - `./gonflus --burp-oob <collab.burp> --payloads oob` (inclut xxe,ssrf,rce,deserialization,ntlm)
+  - `./gonflus --burp-oob <collab.burp> --payloads ssti -e all`
 - **Polyglots**  
   - `./gonflus --burp-oob <collab.burp> -e xml --polyglot`
   - `./gonflus --burp-oob <collab.burp> -e png --polyglot`
@@ -74,7 +79,7 @@ Main commands:
 ## Usage
 
 ```bash
-./gonflus [--burp-oob <collab.burp>] [-e extension] [-d] [--polyglot] [--webshell] [--prompt-ai "prompt"]
+./gonflus [--burp-oob <collab.burp>] [--payloads <types>] [-e extension] [-d] [--polyglot] [--webshell] [--prompt-ai "prompt"]
 ```
 
 Examples:
@@ -85,6 +90,11 @@ Examples:
 ./gonflus --burp-oob abc123.burpcollaborator.net -e all
 ./gonflus --burp-oob abc123.burpcollaborator.net -e pdf,jpg
 ./gonflus --burp-oob abc123.burpcollaborator.net -e xml,svg,html
+./gonflus --burp-oob abc123.burpcollaborator.net --payloads xss
+./gonflus --burp-oob abc123.burpcollaborator.net --payloads xxe,ssrf -e pdf
+./gonflus --burp-oob abc123.burpcollaborator.net --payloads oob -e all
+./gonflus --burp-oob abc123.burpcollaborator.net --payloads ssti -e all
+./gonflus --burp-oob abc123.burpcollaborator.net --payloads xss,ssti -e html
 ./gonflus --burp-oob abc123.burpcollaborator.net -e xml --polyglot
 ./gonflus --burp-oob abc123.burpcollaborator.net -e png --polyglot
 ./gonflus --burp-oob abc123.burpcollaborator.net -e pdf --webshell
@@ -97,7 +107,23 @@ HISTORY=$history'
 ```
 
 Options:
-- `--burp-oob`: Burp Collaborator host used for all payloads that require an out-of-band (OOB) endpoint (required unless you use only `--prompt-ai` or `-d`)
+- `--burp-oob`: Burp Collaborator host used for all payloads that require an out-of-band (OOB) endpoint (required for payload types: `oob`, `xxe`, `ssrf`, `rce`, `deserialization`, `ntlm`, or when using `all` unless you use only `--prompt-ai` or `-d`)
+- `--payloads`: Specify the payload type(s) to generate (can specify multiple types separated by commas). Default: `all`
+  - `xxe`: XML External Entity injection payloads
+  - `ssrf`: Server-Side Request Forgery payloads
+  - `rce`: Remote Code Execution payloads
+  - `oob`: Out-of-band payloads (automatically includes `xxe`, `ssrf`, `rce`, `deserialization`, `ntlm`)
+  - `xss`: Cross-Site Scripting payloads (includes files with XSS payloads in filenames)
+  - `ssti`: Server-Side Template Injection payloads (includes files with SSTI payloads in filenames)
+  - `deserialization`: Deserialization vulnerability payloads
+  - `lfi`: Local File Inclusion payloads
+  - `path_traversal`: Path traversal payloads
+  - `info`: Information disclosure payloads
+  - `info_leak`: Information leakage payloads
+  - `dos`: Denial of Service payloads
+  - `ntlm`: NTLM hash leakage payloads
+  - `all`: Generates all payload types (default)
+  - Examples: `--payloads xss`, `--payloads xxe,ssrf`, `--payloads oob`, `--payloads ssti,xss`
 - `-e, --extension`: Specify the extension(s) to generate (can specify multiple extensions separated by commas):
   - `pdf`, `docx`, `xlsx`, `pptx`: Office Documents
   - `svg`, `xml`, `html`: Web Formats
@@ -113,6 +139,11 @@ Options:
 - `--polyglot`: Generates polyglot payloads with other formats content but the target extension (e.g., SVG content with .xml extension, HTML content with .png extension, PDF+ZIP polyglot). Structure: `<extension>/polyglot/<source_format>/<vulnerability>/<payload_file>`
 - `--webshell`: Generates webshell payloads embedded in legitimate files of the target extension. For each extension, creates webshells for multiple backends (PHP, JSP, ASP, ASPX, Python, Node.js, Ruby, Perl, ColdFusion, etc.) with 3 payload types: `id` (executes `id` command), `cmd` (webshell with `cmd` parameter), and `burp` (sends a request to Burp Collaborator). Structure: `<extension>/webshell/<backend>/webshell1_<type>.<ext>`
 - `--prompt-ai`: For each selected extension, generates an `ai/` directory containing several files (`ai_description.<ext>`, `ai_author.<ext>`, `ai_metadata.<ext>`, `ai_body.<ext>`, `ai_comment.<ext>`) with the prompt injected into metadata fields, document body and comments where the format allows it
+
+**Note on payload types:**
+- When using `--payloads xss` or `--payloads ssti`, the tool generates legitimate files with XSS/SSTI payloads embedded in the **filenames** (e.g., `<script>alert(1)</script>.pdf`, `{{7*7}}.png`). These files are valid for their extension but have malicious payloads in their names to test filename-based injection vulnerabilities.
+- The `oob` payload type automatically expands to include `xxe`, `ssrf`, `rce`, `deserialization`, and `ntlm` as these all require out-of-band detection.
+- Payload types `oob`, `xxe`, `ssrf`, `rce`, `deserialization`, and `ntlm` require the `--burp-oob` option to be specified.
 
 ## Directory Structure
 
@@ -139,6 +170,10 @@ The tool creates the following structure:
   │   │   ├── webshell1_cmd.<ext>
   │   │   └── webshell1_burp.<ext>
   │   └── ...
+  ├── ssti/              (only with --payloads ssti)
+  │   └── <ssti_payload>.<ext>   (files with SSTI payloads in filenames, e.g., {{7*7}}.pdf)
+  ├── xss/                (only with --payloads xss)
+  │   └── <xss_payload>.<ext>    (files with XSS payloads in filenames, e.g., <script>alert(1)</script>.pdf)
   ├── ai/                (only with --prompt-ai flag)
   │   ├── ai_description.<ext>   (prompt in description / metadata section)
   │   ├── ai_author.<ext>        (prompt in author / creator metadata)
@@ -870,7 +905,9 @@ These payloads are intended for authorized red teaming and defensive testing of 
 - Monitor your Burp Collaborator for successful payload executions
 - Master payloads might cause issues if certain techniques are incompatible - in such cases, use individual payloads
 
-## Vulnerable Image Environments
+## Vulnerable Environments
+
+### Image Rendering Lab
 
 For hands-on testing of the PNG/JPG/JPEG payloads (including ImageTragick-style RCE), a minimal vulnerable lab is provided under `vuln-images/`:
 
@@ -886,6 +923,30 @@ Quick commands from the repository root:
 cd vuln-images && docker build -f php/Dockerfile -t gonflus-php-imagemagick .
 docker run --rm -p 8081:80 gonflus-php-imagemagick
 ```
+
+### Universal Render Lab (All File Types)
+
+For comprehensive testing of **all file types** with multiple vulnerability classes, a complete vulnerable lab is provided under `vuln-render/`:
+
+- `vuln-render/` – PHP + Apache + LibreOffice + ImageMagick + Ghostscript + exiftool
+
+This lab renders **all supported file types** server-side and triggers:
+- **RCE** via Ghostscript, ImageMagick delegates
+- **SSRF** via LibreOffice, ImageMagick, embedded URLs
+- **XXE** via PHP XML parsers, LibreOffice, exiftool
+- **XSS** via HTML/text rendering
+- **Path Traversal** via archive extraction
+- **NTLM Leak** via UNC paths
+
+Quick commands from the repository root:
+
+```bash
+# Universal Render Lab  (http://localhost:8080)
+cd vuln-render && docker build -t gonflus-render-all .
+docker run --rm -p 8080:80 gonflus-render-all
+```
+
+See `vuln-render/README.md` for details on supported file types and vulnerabilities.
 
 ## References
 

