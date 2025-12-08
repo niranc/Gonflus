@@ -290,4 +290,3 @@ OpenDocument files are ZIP archives, similar to DOCX/XLSX/PPTX:
 
 **Outils**: oxml_xxe, unzip/rezip
 
-
