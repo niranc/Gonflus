@@ -369,10 +369,10 @@ docker run --rm -p 8081:80 gonflus-php-imagemagick
 
 For comprehensive testing of **all file types** with multiple vulnerability classes, a complete vulnerable lab is provided under `vuln-render/`:
 
-- `vuln-render/` – PHP + Apache + LibreOffice + ImageMagick + Ghostscript + exiftool
+- `vuln-render/` – PHP + Apache + LibreOffice + ImageMagick + Ghostscript + exiftool + FFmpeg
 
-This lab renders **all supported file types** server-side and triggers:
-- **RCE** via Ghostscript, ImageMagick delegates
+This lab renders **all supported file types** server-side with legitimate preview (text extraction, tables, images, video player) and triggers:
+- **RCE** via Ghostscript, ImageMagick, ExifTool, FFmpeg, libpng/libjpeg
 - **SSRF** via LibreOffice, ImageMagick, embedded URLs
 - **XXE** via PHP XML parsers, LibreOffice, exiftool
 - **XSS** via HTML/text rendering
@@ -382,12 +382,13 @@ This lab renders **all supported file types** server-side and triggers:
 Quick commands from the repository root:
 
 ```bash
-# Universal Render Lab  (http://localhost:8080)
 cd vuln-render && docker build -t gonflus-render-all .
 docker run --rm -p 8080:80 gonflus-render-all
 ```
 
-See `vuln-render/README.md` for details on supported file types and vulnerabilities.
+Access: `http://localhost:8080`
+
+See `vuln-render/README.md` for details.
 
 ## References
 

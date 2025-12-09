@@ -8,6 +8,9 @@ if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
 }
 
+$generatedFiles = [];
+$previewContent = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     $file = $_FILES['file'];
     $allOutput = [];
@@ -28,13 +31,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
             $renderOutput = renderFile($targetPath, $ext, $uploadDir, $origName);
             $allOutput = array_merge($allOutput, $renderOutput);
             
-            // For HTML files, also display the content (XSS)
-            if ($ext === 'html' || $ext === 'htm') {
-                $htmlContent = file_get_contents($targetPath);
-                $message = "<pre>" . htmlspecialchars(implode("\n", $allOutput), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</pre>";
-                $message .= "<hr><h2>HTML Content (XSS possible):</h2><div style='border: 1px solid #ccc; padding: 1rem; background: #f9f9f9;'>" . $htmlContent . "</div>";
-            } else {
-                $message = "<pre>" . htmlspecialchars(implode("\n", $allOutput), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</pre>";
+            // Collect generated files for display
+            $generatedFiles = getGeneratedFiles($uploadDir);
+            
+            // Generate preview content
+            $previewContent = generatePreview($targetPath, $ext, $uploadDir, $origName);
+            
+            // Build message with logs
+            $message = "<pre>" . htmlspecialchars(implode("\n", $allOutput), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "</pre>";
+            
+            // Add preview content
+            if (!empty($previewContent)) {
+                $message .= "<hr><h2>Aperçu du contenu:</h2>";
+                $message .= $previewContent;
+            }
+            
+            // Add generated files
+            if (!empty($generatedFiles)) {
+                $message .= "<hr><h2>Fichiers générés (visualisation):</h2>";
+                $message .= displayGeneratedFiles($generatedFiles, $uploadDir);
             }
         } else {
             $message = "Upload failed";
@@ -77,6 +92,7 @@ function renderFile($filePath, $ext, $uploadDir, $origName) {
         case 'gif':
             return renderImage($filePath, $uploadDir, $origName, $output, $ext);
         case 'webm':
+        case 'mp4':
             return renderWebM($filePath, $uploadDir, $origName, $output);
         case 'zip':
         case 'jar':
@@ -1137,6 +1153,648 @@ function renderGeneric($filePath, $uploadDir, $origName, $output) {
     
     return $output;
 }
+
+function getGeneratedFiles($uploadDir) {
+    $files = [];
+    $allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'html', 'htm', 'tiff', 'bmp', 'webp'];
+    
+    if (is_dir($uploadDir)) {
+        $cutoffTime = time() - 300;
+        
+        $iterator = new DirectoryIterator($uploadDir);
+        foreach ($iterator as $file) {
+            if ($file->isFile() && !$file->isDot()) {
+                $ext = strtolower($file->getExtension());
+                if (in_array($ext, $allowedExtensions) && $file->getMTime() >= $cutoffTime) {
+                    $files[] = [
+                        'name' => $file->getFilename(),
+                        'path' => $file->getPathname(),
+                        'ext' => $ext,
+                        'size' => $file->getSize(),
+                        'mtime' => $file->getMTime()
+                    ];
+                }
+            }
+        }
+    }
+    
+    usort($files, function($a, $b) {
+        return $b['mtime'] - $a['mtime'];
+    });
+    
+    return array_slice($files, 0, 30);
+}
+
+function generatePreview($filePath, $ext, $uploadDir, $origName) {
+    $html = '';
+    
+    switch ($ext) {
+        case 'pdf':
+        case 'eps':
+            $html = previewPDF($filePath, $uploadDir);
+            break;
+        case 'docx':
+        case 'doc':
+            $html = previewDOCX($filePath, $uploadDir);
+            break;
+        case 'xlsx':
+        case 'xls':
+            $html = previewXLSX($filePath, $uploadDir);
+            break;
+        case 'pptx':
+        case 'ppt':
+            $html = previewPPTX($filePath, $uploadDir);
+            break;
+        case 'odt':
+        case 'ods':
+        case 'odp':
+            $html = previewODT($filePath, $uploadDir, $ext);
+            break;
+        case 'svg':
+            $html = previewSVG($filePath);
+            break;
+        case 'xml':
+            $html = previewXML($filePath);
+            break;
+        case 'html':
+        case 'htm':
+            $html = previewHTML($filePath);
+            break;
+        case 'png':
+        case 'jpg':
+        case 'jpeg':
+        case 'gif':
+        case 'webp':
+        case 'bmp':
+            $html = previewImage($filePath, $ext);
+            break;
+        case 'webm':
+        case 'mp4':
+            $html = previewVideo($filePath, $ext);
+            break;
+        case 'zip':
+        case 'jar':
+        case 'epub':
+            $html = previewArchive($filePath, $ext);
+            break;
+        case 'txt':
+        case 'csv':
+        case 'rtf':
+        case 'md':
+            $html = previewText($filePath, $ext);
+            break;
+        default:
+            $html = previewGeneric($filePath);
+            break;
+    }
+    
+    return $html;
+}
+
+function previewPDF($filePath, $uploadDir) {
+    $html = '<div class="preview-container">';
+    
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Extraction de texte</h3>';
+    $textOut = $uploadDir . '/pdf_text_' . uniqid() . '.txt';
+    $cmd = 'pdftotext ' . escapeshellarg($filePath) . ' ' . escapeshellarg($textOut) . ' 2>&1';
+    exec($cmd, $output, $ret);
+    if ($ret === 0 && file_exists($textOut)) {
+        $text = file_get_contents($textOut);
+        if (strlen($text) > 0) {
+            $html .= '<div class="text-preview">' . nl2br(htmlspecialchars(substr($text, 0, 5000))) . '</div>';
+        } else {
+            $html .= '<p class="info">Aucun texte extractible trouvé</p>';
+        }
+        @unlink($textOut);
+    } else {
+        $html .= '<p class="info">Impossible d\'extraire le texte</p>';
+    }
+    $html .= '</div>';
+    
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Métadonnées</h3>';
+    $cmd = 'exiftool -S ' . escapeshellarg($filePath) . ' 2>&1 | head -20';
+    exec($cmd, $metaOutput, $metaRet);
+    if (!empty($metaOutput)) {
+        $html .= '<pre class="metadata">' . htmlspecialchars(implode("\n", $metaOutput)) . '</pre>';
+    }
+    $html .= '</div>';
+    
+    $html .= '</div>';
+    return $html;
+}
+
+function previewDOCX($filePath, $uploadDir) {
+    $html = '<div class="preview-container">';
+    
+    $zip = new ZipArchive();
+    if ($zip->open($filePath) === TRUE) {
+        $html .= '<div class="preview-section">';
+        $html .= '<h3>Contenu du document</h3>';
+        
+        $docXml = $zip->getFromName('word/document.xml');
+        if ($docXml) {
+            libxml_disable_entity_loader(false);
+            libxml_use_internal_errors(true);
+            try {
+                $dom = new DOMDocument();
+                $dom->loadXML($docXml);
+                $xpath = new DOMXPath($dom);
+                $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+                
+                $paragraphs = $xpath->query('//w:p');
+                $html .= '<div class="document-content">';
+                foreach ($paragraphs as $para) {
+                    $textNodes = $xpath->query('.//w:t', $para);
+                    $text = '';
+                    foreach ($textNodes as $node) {
+                        $text .= $node->nodeValue;
+                    }
+                    if (trim($text) !== '') {
+                        $html .= '<p>' . nl2br(htmlspecialchars($text)) . '</p>';
+                    }
+                }
+                $html .= '</div>';
+            } catch (Exception $e) {
+                $html .= '<p class="error">Erreur lors du parsing: ' . htmlspecialchars($e->getMessage()) . '</p>';
+            }
+        }
+        
+        $html .= '<div class="preview-section">';
+        $html .= '<h3>Images dans le document</h3>';
+        $imageCount = 0;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $filename = $zip->getNameIndex($i);
+            if (preg_match('/^word\/media\/image\d+\.(jpg|jpeg|png|gif)$/i', $filename)) {
+                $imageCount++;
+                $imageData = $zip->getFromIndex($i);
+                $imageExt = pathinfo($filename, PATHINFO_EXTENSION);
+                $imagePath = $uploadDir . '/docx_img_' . uniqid() . '.' . $imageExt;
+                file_put_contents($imagePath, $imageData);
+                $imageUrl = 'uploads/' . basename($imagePath);
+                $html .= '<div class="document-image"><img src="' . htmlspecialchars($imageUrl) . '" alt="Image ' . $imageCount . '" style="max-width: 300px; margin: 0.5rem;"></div>';
+            }
+        }
+        if ($imageCount === 0) {
+            $html .= '<p class="info">Aucune image trouvée</p>';
+        }
+        $html .= '</div>';
+        
+        $zip->close();
+    }
+    
+    $html .= '</div>';
+    return $html;
+}
+
+function previewXLSX($filePath, $uploadDir) {
+    $html = '<div class="preview-container">';
+    
+    $zip = new ZipArchive();
+    if ($zip->open($filePath) === TRUE) {
+        $html .= '<div class="preview-section">';
+        $html .= '<h3>Contenu des feuilles de calcul</h3>';
+        
+        $sharedStrings = [];
+        $sharedStringsXml = $zip->getFromName('xl/sharedStrings.xml');
+        if ($sharedStringsXml) {
+            libxml_disable_entity_loader(false);
+            try {
+                $dom = new DOMDocument();
+                $dom->loadXML($sharedStringsXml);
+                $xpath = new DOMXPath($dom);
+                $xpath->registerNamespace('x', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+                $siNodes = $xpath->query('//x:si');
+                foreach ($siNodes as $si) {
+                    $tNodes = $xpath->query('.//x:t', $si);
+                    $text = '';
+                    foreach ($tNodes as $t) {
+                        $text .= $t->nodeValue;
+                    }
+                    $sharedStrings[] = $text;
+                }
+            } catch (Exception $e) {
+            }
+        }
+        
+        $sheetFiles = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $filename = $zip->getNameIndex($i);
+            if (preg_match('/^xl\/worksheets\/sheet\d+\.xml$/', $filename)) {
+                $sheetFiles[] = $filename;
+            }
+        }
+        
+        foreach (array_slice($sheetFiles, 0, 3) as $sheetFile) {
+            $sheetXml = $zip->getFromName($sheetFile);
+            if ($sheetXml) {
+                libxml_disable_entity_loader(false);
+                try {
+                    $dom = new DOMDocument();
+                    $dom->loadXML($sheetXml);
+                    $xpath = new DOMXPath($dom);
+                    $xpath->registerNamespace('x', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+                    
+                    $sheetName = basename($sheetFile, '.xml');
+                    $html .= '<h4>' . htmlspecialchars($sheetName) . '</h4>';
+                    $html .= '<table class="spreadsheet-preview" border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; margin: 1rem 0;">';
+                    
+                    $rows = $xpath->query('//x:row');
+                    $rowCount = 0;
+                    foreach ($rows as $row) {
+                        if ($rowCount++ >= 20) break;
+                        $html .= '<tr>';
+                        $cells = $xpath->query('.//x:c', $row);
+                        foreach ($cells as $cell) {
+                            $value = '';
+                            $vNode = $xpath->query('.//x:v', $cell);
+                            if ($vNode->length > 0) {
+                                $value = $vNode->item(0)->nodeValue;
+                            } else {
+                                $tNode = $xpath->query('.//x:t', $cell);
+                                if ($tNode->length > 0) {
+                                    $value = $tNode->item(0)->nodeValue;
+                                } else {
+                                    $rAttr = $cell->getAttribute('r');
+                                    $tAttr = $cell->getAttribute('t');
+                                    if ($tAttr === 's' && $rAttr) {
+                                        $idx = intval($xpath->query('.//x:v', $cell)->item(0)->nodeValue);
+                                        if (isset($sharedStrings[$idx])) {
+                                            $value = $sharedStrings[$idx];
+                                        }
+                                    }
+                                }
+                            }
+                            $html .= '<td>' . htmlspecialchars($value) . '</td>';
+                        }
+                        $html .= '</tr>';
+                    }
+                    $html .= '</table>';
+                } catch (Exception $e) {
+                }
+            }
+        }
+        
+        $html .= '</div>';
+        $zip->close();
+    }
+    
+    $html .= '</div>';
+    return $html;
+}
+
+function previewPPTX($filePath, $uploadDir) {
+    $html = '<div class="preview-container">';
+    
+    $zip = new ZipArchive();
+    if ($zip->open($filePath) === TRUE) {
+        $html .= '<div class="preview-section">';
+        $html .= '<h3>Contenu de la présentation</h3>';
+        
+        $slideFiles = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $filename = $zip->getNameIndex($i);
+            if (preg_match('/^ppt\/slides\/slide\d+\.xml$/', $filename)) {
+                $slideFiles[] = $filename;
+            }
+        }
+        
+        foreach (array_slice($slideFiles, 0, 10) as $idx => $slideFile) {
+            $slideXml = $zip->getFromName($slideFile);
+            if ($slideXml) {
+                libxml_disable_entity_loader(false);
+                try {
+                    $dom = new DOMDocument();
+                    $dom->loadXML($slideXml);
+                    $xpath = new DOMXPath($dom);
+                    $xpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
+                    $xpath->registerNamespace('p', 'http://schemas.openxmlformats.org/presentationml/2006/main');
+                    
+                    $html .= '<div class="slide-preview" style="border: 1px solid #ddd; padding: 1rem; margin: 1rem 0; background: #f9f9f9;">';
+                    $html .= '<h4>Slide ' . ($idx + 1) . '</h4>';
+                    
+                    $textNodes = $xpath->query('//a:t');
+                    $html .= '<div class="slide-content">';
+                    foreach ($textNodes as $textNode) {
+                        $text = trim($textNode->nodeValue);
+                        if ($text !== '') {
+                            $html .= '<p>' . htmlspecialchars($text) . '</p>';
+                        }
+                    }
+                    $html .= '</div>';
+                    $html .= '</div>';
+                } catch (Exception $e) {
+                }
+            }
+        }
+        
+        $html .= '</div>';
+        $zip->close();
+    }
+    
+    $html .= '</div>';
+    return $html;
+}
+
+function previewODT($filePath, $uploadDir, $ext) {
+    $html = '<div class="preview-container">';
+    
+    $zip = new ZipArchive();
+    if ($zip->open($filePath) === TRUE) {
+        $html .= '<div class="preview-section">';
+        $html .= '<h3>Contenu du document</h3>';
+        
+        $contentXml = $zip->getFromName('content.xml');
+        if ($contentXml) {
+            libxml_disable_entity_loader(false);
+            try {
+                $dom = new DOMDocument();
+                $dom->loadXML($contentXml);
+                $xpath = new DOMXPath($dom);
+                $xpath->registerNamespace('text', 'urn:oasis:names:tc:opendocument:xmlns:text:1.0');
+                $xpath->registerNamespace('office', 'urn:oasis:names:tc:opendocument:xmlns:office:1.0');
+                
+                if ($ext === 'ods') {
+                    $html .= '<table class="spreadsheet-preview" border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; margin: 1rem 0;">';
+                    $rows = $xpath->query('//office:table-row');
+                    $rowCount = 0;
+                    foreach ($rows as $row) {
+                        if ($rowCount++ >= 20) break;
+                        $html .= '<tr>';
+                        $cells = $xpath->query('.//office:table-cell', $row);
+                        foreach ($cells as $cell) {
+                            $textNodes = $xpath->query('.//text:p', $cell);
+                            $value = '';
+                            foreach ($textNodes as $textNode) {
+                                $value .= $textNode->nodeValue . ' ';
+                            }
+                            $html .= '<td>' . htmlspecialchars(trim($value)) . '</td>';
+                        }
+                        $html .= '</tr>';
+                    }
+                    $html .= '</table>';
+                } else {
+                    $paragraphs = $xpath->query('//text:p');
+                    $html .= '<div class="document-content">';
+                    foreach ($paragraphs as $para) {
+                        $text = trim($para->nodeValue);
+                        if ($text !== '') {
+                            $html .= '<p>' . nl2br(htmlspecialchars($text)) . '</p>';
+                        }
+                    }
+                    $html .= '</div>';
+                }
+            } catch (Exception $e) {
+                $html .= '<p class="error">Erreur lors du parsing</p>';
+            }
+        }
+        
+        $zip->close();
+    }
+    
+    $html .= '</div>';
+    return $html;
+}
+
+function previewSVG($filePath) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Aperçu SVG</h3>';
+    $svgContent = file_get_contents($filePath);
+    $relativePath = 'uploads/' . basename($filePath);
+    $html .= '<div style="border: 1px solid #ddd; padding: 1rem; background: white; text-align: center;">';
+    $html .= '<img src="' . htmlspecialchars($relativePath) . '" style="max-width: 100%; height: auto;" alt="SVG Preview">';
+    $html .= '</div>';
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function previewXML($filePath) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Structure XML</h3>';
+    $xmlContent = file_get_contents($filePath);
+    libxml_disable_entity_loader(false);
+    try {
+        $dom = new DOMDocument();
+        $dom->preserveWhiteSpace = false;
+        $dom->formatOutput = true;
+        $dom->loadXML($xmlContent);
+        $html .= '<pre class="xml-preview">' . htmlspecialchars($dom->saveXML()) . '</pre>';
+    } catch (Exception $e) {
+        $html .= '<pre class="xml-preview">' . htmlspecialchars($xmlContent) . '</pre>';
+    }
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function previewHTML($filePath) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Aperçu HTML</h3>';
+    $relativePath = 'uploads/' . basename($filePath);
+    $html .= '<iframe src="' . htmlspecialchars($relativePath) . '" style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 4px;" sandbox="allow-scripts allow-same-origin"></iframe>';
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function previewImage($filePath, $ext) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Aperçu de l\'image</h3>';
+    $relativePath = 'uploads/' . basename($filePath);
+    $html .= '<div style="text-align: center; margin: 1rem 0;">';
+    $html .= '<img src="' . htmlspecialchars($relativePath) . '" style="max-width: 100%; max-height: 600px; height: auto; border: 1px solid #ddd; border-radius: 4px;" alt="Image Preview">';
+    $html .= '</div>';
+    
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Informations de l\'image</h3>';
+    $info = [];
+    if (function_exists('getimagesize')) {
+        $size = @getimagesize($filePath);
+        if ($size) {
+            $info[] = 'Dimensions: ' . $size[0] . ' x ' . $size[1] . ' pixels';
+            $info[] = 'Type MIME: ' . $size['mime'];
+        }
+    }
+    $info[] = 'Taille du fichier: ' . number_format(filesize($filePath) / 1024, 2) . ' KB';
+    
+    $cmd = 'exiftool -S ' . escapeshellarg($filePath) . ' 2>&1 | head -15';
+    exec($cmd, $exifOutput, $exifRet);
+    if (!empty($exifOutput)) {
+        $html .= '<pre class="metadata">' . htmlspecialchars(implode("\n", $exifOutput)) . '</pre>';
+    } else {
+        $html .= '<ul>';
+        foreach ($info as $item) {
+            $html .= '<li>' . htmlspecialchars($item) . '</li>';
+        }
+        $html .= '</ul>';
+    }
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function previewVideo($filePath, $ext) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Aperçu vidéo</h3>';
+    $relativePath = 'uploads/' . basename($filePath);
+    $html .= '<video controls style="width: 100%; max-height: 500px; border: 1px solid #ddd; border-radius: 4px;">';
+    $html .= '<source src="' . htmlspecialchars($relativePath) . '" type="video/' . htmlspecialchars($ext) . '">';
+    $html .= 'Votre navigateur ne supporte pas la lecture de vidéos.';
+    $html .= '</video>';
+    $html .= '</div>';
+    
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Informations de la vidéo</h3>';
+    $cmd = 'exiftool -S ' . escapeshellarg($filePath) . ' 2>&1 | head -20';
+    exec($cmd, $metaOutput, $metaRet);
+    if (!empty($metaOutput)) {
+        $html .= '<pre class="metadata">' . htmlspecialchars(implode("\n", $metaOutput)) . '</pre>';
+    }
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function previewArchive($filePath, $ext) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Contenu de l\'archive</h3>';
+    
+    $zip = new ZipArchive();
+    if ($zip->open($filePath) === TRUE) {
+        $html .= '<p>Nombre de fichiers: ' . $zip->numFiles . '</p>';
+        $html .= '<table class="archive-preview" border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">';
+        $html .= '<tr><th>Nom du fichier</th><th>Taille</th><th>Type</th></tr>';
+        
+        for ($i = 0; $i < min($zip->numFiles, 50); $i++) {
+            $filename = $zip->getNameIndex($i);
+            $fileInfo = $zip->statIndex($i);
+            $fileExt = strtoupper(pathinfo($filename, PATHINFO_EXTENSION));
+            $html .= '<tr>';
+            $html .= '<td>' . htmlspecialchars($filename) . '</td>';
+            $html .= '<td>' . number_format($fileInfo['size'] / 1024, 2) . ' KB</td>';
+            $html .= '<td>' . htmlspecialchars($fileExt ?: 'N/A') . '</td>';
+            $html .= '</tr>';
+        }
+        
+        if ($zip->numFiles > 50) {
+            $html .= '<tr><td colspan="3">... et ' . ($zip->numFiles - 50) . ' autres fichiers</td></tr>';
+        }
+        
+        $html .= '</table>';
+        $zip->close();
+    }
+    
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function previewText($filePath, $ext) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Contenu du fichier</h3>';
+    
+    $content = file_get_contents($filePath);
+    $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
+    if ($encoding && $encoding !== 'UTF-8') {
+        $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+    }
+    
+    if ($ext === 'csv') {
+        $html .= '<table class="csv-preview" border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">';
+        $lines = explode("\n", $content);
+        $rowCount = 0;
+        foreach ($lines as $line) {
+            if ($rowCount++ >= 100) break;
+            $cells = str_getcsv($line);
+            $html .= '<tr>';
+            foreach ($cells as $cell) {
+                $html .= '<td>' . htmlspecialchars($cell) . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        $html .= '</table>';
+    } elseif ($ext === 'md') {
+        $html .= '<div class="markdown-preview">';
+        $html .= '<pre style="background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;">' . htmlspecialchars($content) . '</pre>';
+        $html .= '</div>';
+    } else {
+        $html .= '<pre class="text-preview">' . htmlspecialchars(substr($content, 0, 10000)) . '</pre>';
+        if (strlen($content) > 10000) {
+            $html .= '<p class="info">... (contenu tronqué, ' . strlen($content) . ' caractères au total)</p>';
+        }
+    }
+    
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function previewGeneric($filePath) {
+    $html = '<div class="preview-container">';
+    $html .= '<div class="preview-section">';
+    $html .= '<h3>Informations du fichier</h3>';
+    
+    $cmd = 'file -b ' . escapeshellarg($filePath) . ' 2>&1';
+    exec($cmd, $fileOutput, $fileRet);
+    if (!empty($fileOutput)) {
+        $html .= '<p><strong>Type détecté:</strong> ' . htmlspecialchars(implode(' ', $fileOutput)) . '</p>';
+    }
+    
+    $html .= '<p><strong>Taille:</strong> ' . number_format(filesize($filePath) / 1024, 2) . ' KB</p>';
+    $html .= '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+function displayGeneratedFiles($files, $uploadDir) {
+    $html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem;">';
+    
+    foreach ($files as $file) {
+        $relativePath = 'uploads/' . basename($file['path']);
+        $fileUrl = htmlspecialchars($relativePath, ENT_QUOTES, 'UTF-8');
+        $fileName = htmlspecialchars($file['name'], ENT_QUOTES, 'UTF-8');
+        $fileSize = number_format($file['size'] / 1024, 2) . ' KB';
+        
+        $html .= '<div style="border: 1px solid #ddd; padding: 1rem; border-radius: 6px; background: #f9f9f9;">';
+        $html .= '<h3 style="margin-top: 0; font-size: 0.9rem; color: #555;">' . $fileName . '</h3>';
+        $html .= '<p style="font-size: 0.8rem; color: #777;">Taille: ' . $fileSize . '</p>';
+        
+        if (in_array($file['ext'], ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp'])) {
+            $html .= '<div style="margin: 0.5rem 0;">';
+            $html .= '<img src="' . $fileUrl . '" style="max-width: 100%; max-height: 300px; height: auto; border: 1px solid #ccc; border-radius: 4px; object-fit: contain;" alt="' . $fileName . '" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\';">';
+            $html .= '<p style="display: none; color: #d32f2f; font-size: 0.8rem;">Erreur de chargement de l\'image</p>';
+            $html .= '</div>';
+        } elseif ($file['ext'] === 'pdf') {
+            $html .= '<div style="margin: 0.5rem 0;">';
+            $html .= '<iframe src="' . $fileUrl . '#toolbar=1" style="width: 100%; height: 500px; border: 1px solid #ccc; border-radius: 4px;" title="' . $fileName . '"></iframe>';
+            $html .= '<p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">PDF généré par LibreOffice ou Ghostscript</p>';
+            $html .= '</div>';
+        } elseif (in_array($file['ext'], ['html', 'htm'])) {
+            $html .= '<div style="margin: 0.5rem 0;">';
+            $html .= '<iframe src="' . $fileUrl . '" style="width: 100%; height: 400px; border: 1px solid #ccc; border-radius: 4px;" title="' . $fileName . '" sandbox="allow-scripts allow-same-origin"></iframe>';
+            $html .= '</div>';
+        } elseif ($file['ext'] === 'tiff') {
+            $html .= '<div style="margin: 0.5rem 0; padding: 1rem; background: #f0f0f0; border-radius: 4px;">';
+            $html .= '<p style="color: #666; font-size: 0.9rem;">Fichier TIFF généré - Utilisez le bouton de téléchargement pour le visualiser</p>';
+            $html .= '</div>';
+        }
+        
+        $html .= '<a href="' . $fileUrl . '" download="' . $fileName . '" style="display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem; background: #007bff; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9rem;">Télécharger</a>';
+        $html .= '</div>';
+    }
+    
+    $html .= '</div>';
+    return $html;
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -1157,6 +1815,31 @@ function renderGeneric($filePath, $uploadDir, $origName, $output) {
         h2 { color: #555; margin-top: 2rem; }
         .supported { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; }
         .supported-item { padding: 0.5rem; background: #f0f0f0; border-radius: 4px; }
+        .preview-container { margin-top: 1rem; }
+        .preview-section { margin: 1.5rem 0; padding: 1rem; background: #f9f9f9; border-radius: 6px; border: 1px solid #e0e0e0; }
+        .preview-section h3 { margin-top: 0; color: #333; font-size: 1.2rem; }
+        .preview-section h4 { color: #555; font-size: 1rem; margin: 0.5rem 0; }
+        .text-preview { background: white; padding: 1rem; border-radius: 4px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto; line-height: 1.6; }
+        .document-content { background: white; padding: 1rem; border-radius: 4px; border: 1px solid #ddd; }
+        .document-content p { margin: 0.5rem 0; }
+        .document-image { display: inline-block; margin: 0.5rem; }
+        .spreadsheet-preview { background: white; width: 100%; font-size: 0.9rem; }
+        .spreadsheet-preview td { background: white; }
+        .spreadsheet-preview tr:nth-child(even) td { background: #f9f9f9; }
+        .slide-preview { background: white; }
+        .slide-content p { margin: 0.3rem 0; }
+        .xml-preview { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+        .metadata { background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.85rem; }
+        .archive-preview { background: white; font-size: 0.9rem; }
+        .archive-preview th { background: #007bff; color: white; padding: 0.5rem; text-align: left; }
+        .archive-preview td { padding: 0.5rem; }
+        .archive-preview tr:nth-child(even) { background: #f9f9f9; }
+        .csv-preview { background: white; font-size: 0.9rem; }
+        .csv-preview td { padding: 0.5rem; }
+        .csv-preview tr:nth-child(even) td { background: #f9f9f9; }
+        .markdown-preview { background: white; }
+        .info { color: #666; font-style: italic; }
+        .error { color: #d32f2f; }
     </style>
 </head>
 <body>

@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     imagemagick \
     poppler-utils \
     exiftool \
+    ffmpeg \
     libxml2-dev \
     libzip-dev \
     && rm -rf /var/lib/apt/lists/*
