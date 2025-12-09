@@ -14,6 +14,17 @@ For a structured overview of known rendering vulnerabilities, CVEs, PoCs, and th
 
 ## Summary
 
+Gonflus is a comprehensive payload generator for security testing of file uploads. It generates **SSRF, XXE, and RCE payloads** across **23 file formats** with extensive coverage:
+
+**Payload Coverage:**
+- **22 extensions** with ≥5 SSRF payloads
+- **22 extensions** with ≥5 XXE payloads  
+- **21 extensions** with ≥5 RCE payloads
+- **Additional vulnerabilities**: LFI, XSS, Path Traversal, NTLM Leak, Info Disclosure, DoS, OOB, Heap Overflow, UAF, Integer Overflow
+
+See the [Payload Summary Table](#supported-file-formats) for complete coverage details.
+
+**Contents:**
 - [Installation](#installation): How to install dependencies and set up the environment.
 - [Quick Usage](#quick-usage): Common commands for generating payloads quickly.
 - [Usage](#usage): Detailed examples covering all CLI options and combinations.
@@ -23,7 +34,7 @@ For a structured overview of known rendering vulnerabilities, CVEs, PoCs, and th
 - [Polyglot Payloads](#polyglot-payloads): Polyglot payloads combinations across formats.
 - [Webshell Structure Example](#webshell-structure-example): Webshell payloads combinations across formats.
 - [AI Prompt Payloads](#ai-prompt-payloads): Indirect prompt injection modeling for AI systems.
-- [Supported File Formats](#supported-file-formats): Overview of all extensions and vulnerability coverage.
+- [Supported File Formats](#supported-file-formats): Complete payload summary table and detailed coverage.
 - [Detailed Techniques](#detailed-techniques): Detailed documentation of all techniques by format (separate files).
 - [Notes](#notes): Usage notes and security considerations.
 - [Vulnerable Environments](#vulnerable-environments): Dockerized labs for server-side file rendering (images and all file types).
@@ -287,37 +298,72 @@ These payloads are intended for authorized red teaming and defensive testing of 
 
 ## Supported File Formats
 
-### Office Documents
-- **PDF**: SSRF (31 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (2 techniques), RCE (6 techniques including Ghostscript/PostScript and JavaScript), XSS (20 techniques including sandbox bypass and injections), Info Disclosure (5 techniques using Excel/Office functions)
-- **DOCX**: SSRF (5 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques)
-- **XLSX**: SSRF (3 techniques), LFI (1 technique), XXE (1 technique), XSS (2 techniques), Info Disclosure (5 techniques using Excel functions)
-- **ODT/ODS/ODP**: XXE (2 techniques), XSS (1 technique), Info Disclosure (5 techniques for ODT/ODS using Excel/Office functions)
-- **PPTX**: SSRF (2 techniques), XXE (2 techniques), XSS (2 techniques)
+### Payload Summary Table
 
-### Web Formats
-- **HTML**: XSS (2 techniques), SSRF (4 techniques), RCE (2 techniques)
-- **SVG**: SSRF (8 techniques), LFI (1 technique), XXE (1 technique), XSS (7 techniques)
-- **XML**: XXE (5 techniques), XSS (4 techniques), Path Traversal (2 techniques)
+| Extension | SSRF | XXE | RCE | Other Vulnerabilities |
+|-----------|------|-----|-----|----------------------|
+| **PDF** | 31 | 6 | 8 | NTLM (2), LFI (2), XSS (20), Info Disclosure (5) |
+| **DOCX** | 5 | 5 | 5 | LFI (1), XSS (2) |
+| **XLSX** | 5 | 5 | 5 | LFI (1), XSS (2), Info Disclosure (5) |
+| **PPTX** | 5 | 5 | 5 | XSS (2) |
+| **ODT** | 3 | 5 | 5 | XSS (1), Info Disclosure (5) ✓ |
+| **ODS** | 3 | 5 | 5 | XSS (1), Info Disclosure (5) ✓ |
+| **ODP** | 3 | 5 | 5 | XSS (1) ✓ |
+| **HTML** | 6 | 5 | 5 | XSS (7) |
+| **SVG** | 8 | 6 | 7 | LFI (5), XSS (7) |
+| **XML** | 5 | 5 | 5 | XSS (4), Path Traversal (3) |
+| **PNG** | 21 | 11 | 92 | XSS (1) |
+| **JPG/JPEG** | 23 | 13 | 116 | XSS (1) |
+| **GIF** | 22 | 12 | 28 | XSS (1) |
+| **WEBM** | 5 | 5 | 5 | OOB (3), Heap Overflow (3), UAF (2), Integer Overflow (4), DoS (4), Info Leak (2) |
+| **MP4** | 5 | 5 | 5 | OOB (3), Heap Overflow (3), UAF (2), Integer Overflow (3), DoS (4), Info Leak (3), XSS (2) |
+| **ZIP** | 5 | 5 | 4 | Path Traversal (2), XSS (1) |
+| **JAR** | 5 | 5 | 5 | Path Traversal (2) |
+| **EPUB** | 5 | 5 | 5 | Path Traversal (2), XSS (1) |
+| **TXT** | 5 | 5 | 5 | XSS (2), Path Traversal (3) |
+| **CSV** | 6 | 5 | 6 | XSS (7), Path Traversal (3) |
+| **RTF** | 5 | 5 | 5 | XSS (2), Path Traversal (3) |
+| **MD** | 5 | 5 | 8 | XSS (7), Info Leak (4), DoS (3), OOB (2) ✓ |
+| **Markdown** | 3 | 0 | 8 | XSS (7), Info Leak (4), DoS (3), OOB (2) |
 
-### Images
-- **GIF**: SSRF/XXE (1 technique via comment blocks), XSS (1 technique via comment blocks)
-- **JPG/JPEG**: SSRF/XXE (1 technique via COM segment), XSS (1 technique via COM segment)
-- **PNG**: SSRF (20 techniques via MVG/SVG delegates), RCE (20 techniques ImageMagick delegates), XXE (10 techniques via XMP), XSS (1 technique via iTXt chunk)
+**Legend:**
+- ✓ = Extension with ≥5 payloads for SSRF, XXE, and RCE
+- Counts indicate the number of techniques/payloads generated for each vulnerability type
+- "Other Vulnerabilities" lists additional supported types (LFI, XSS, Path Traversal, etc.)
 
-### Video Formats
-- **WEBM**: OOB Read/Write (3 techniques), Heap Buffer Overflow (3 techniques), Use-After-Free (2 techniques), Integer Overflow (4 techniques), RCE (3 techniques), DoS/Crash (4 techniques), Information Leak (2 techniques)
-- **MP4**: OOB Read/Write (3 techniques), Heap Buffer Overflow (3 techniques), Use-After-Free (2 techniques), Integer Overflow (3 techniques), RCE (3 techniques), DoS/Crash (4 techniques), Information Leak (3 techniques), SSRF (2 techniques indirect), XSS (2 techniques indirect)
+### Details by Category
 
-### Archives
-- **ZIP**: XXE (2 techniques), Path Traversal (2 techniques), RCE (2 techniques PHP), XSS (1 technique via filename)
-- **JAR**: XXE (2 techniques), Path Traversal (2 techniques), RCE (2 techniques PHP)
-- **EPUB**: XXE (2 techniques), Path Traversal (2 techniques), XSS (1 technique via .xhtml)
+#### Office Documents
+- **PDF**: SSRF (31 techniques), NTLM Leak (2 techniques), LFI (2 techniques), XXE (6 techniques), RCE (8 techniques including Ghostscript/PostScript and JavaScript), XSS (20 techniques including sandbox bypass and injections), Info Disclosure (5 techniques using Excel/Office functions)
+- **DOCX**: SSRF (5 techniques), LFI (1 technique), XXE (5 techniques), RCE (5 techniques), XSS (2 techniques)
+- **XLSX**: SSRF (5 techniques), LFI (1 technique), XXE (5 techniques), RCE (5 techniques), XSS (2 techniques), Info Disclosure (5 techniques using Excel functions)
+- **ODT/ODS/ODP**: SSRF (3 techniques), XXE (5 techniques), RCE (5 techniques), XSS (1 technique), Info Disclosure (5 techniques for ODT/ODS using Excel/Office functions)
+- **PPTX**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), XSS (2 techniques)
 
-### Text Files
-- **TXT**: XSS (2 techniques), SSRF (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
-- **CSV**: XSS (3 techniques), SSRF (2 techniques), Path Traversal (3 techniques), RCE (4 techniques)
-- **RTF**: SSRF (2 techniques), XSS (4 techniques), Path Traversal (3 techniques), RCE (4 techniques)
-- **Markdown (MD)**: RCE (7 techniques via XSS chain, OOB, internal), SSRF (3 techniques indirect), XSS (7 techniques), Information Leak (4 techniques), DoS (3 techniques), OOB (2 techniques)
+#### Web Formats
+- **HTML**: SSRF (6 techniques), XXE (5 techniques), RCE (5 techniques), XSS (7 techniques)
+- **SVG**: SSRF (8 techniques), LFI (5 techniques), XXE (6 techniques), RCE (7 techniques), XSS (7 techniques)
+- **XML**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), XSS (4 techniques), Path Traversal (3 techniques)
+
+#### Images
+- **GIF**: SSRF (22 techniques), XXE (12 techniques), RCE (28 techniques), XSS (1 technique via comment blocks)
+- **JPG/JPEG**: SSRF (23 techniques), XXE (13 techniques), RCE (116 techniques), XSS (1 technique via COM segment)
+- **PNG**: SSRF (21 techniques via MVG/SVG delegates), RCE (92 techniques ImageMagick delegates), XXE (11 techniques via XMP), XSS (1 technique via iTXt chunk)
+
+#### Video Formats
+- **WEBM**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), OOB Read/Write (3 techniques), Heap Buffer Overflow (3 techniques), Use-After-Free (2 techniques), Integer Overflow (4 techniques), DoS/Crash (4 techniques), Information Leak (2 techniques)
+- **MP4**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), OOB Read/Write (3 techniques), Heap Buffer Overflow (3 techniques), Use-After-Free (2 techniques), Integer Overflow (3 techniques), DoS/Crash (4 techniques), Information Leak (3 techniques), XSS (2 techniques indirect)
+
+#### Archives
+- **ZIP**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), Path Traversal (2 techniques), XSS (1 technique via filename)
+- **JAR**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), Path Traversal (2 techniques)
+- **EPUB**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), Path Traversal (2 techniques), XSS (1 technique via .xhtml)
+
+#### Text Files
+- **TXT**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), XSS (2 techniques), Path Traversal (3 techniques)
+- **CSV**: SSRF (6 techniques), XXE (5 techniques), RCE (6 techniques), XSS (7 techniques), Path Traversal (3 techniques)
+- **RTF**: SSRF (5 techniques), XXE (5 techniques), RCE (5 techniques), XSS (2 techniques), Path Traversal (3 techniques)
+- **Markdown (MD)**: SSRF (5 techniques), XXE (5 techniques), RCE (8 techniques), XSS (7 techniques), Information Leak (4 techniques), DoS (3 techniques), OOB (2 techniques)
 
 ## Detailed Techniques
 
