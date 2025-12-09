@@ -99,6 +99,7 @@ RUN gs --version || echo "Ghostscript version check failed"
 
 # Configure Apache
 RUN a2enmod rewrite
+RUN a2enmod autoindex
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Copy application
